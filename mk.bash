@@ -12,66 +12,116 @@
 # Users do not have to call subcommands with capitalization;
 # subcommands are capitalized automatically before calling their function.
 #
-# You must let mk.bash process arguments before you do with the line:
+# This library relies on strict mode, which means:
 #
-#     Args=( "$@" ); processArgs; set -- "${Args[@]}"; unset -v Args
+# - errors cause execution to stop
+# - unset variable reference cause errors, see last point
+# - variable expansions are safe and do not require quotes,
+# unless dealing with input or newlines:
+#   - IFS is set to newline
+#   - globbing is disabled
 #
-# Finally, call main "$@" and your script is ready to run.
+# Include the following boilerplate to begin:
 #
-# Some variables are made available to your script (don't redefine
-# these unless you know what you're doing):
-#   Tab - a tab character
-#   Nl - a newline character
-#   IFS - set to newline
+# ## boilerplate
 #
-# This library disables word-splitting (by setting IFS to newline) and
-# globbing so you can reference any variables that
-# don't contain newlines (i.e. most variables with known values)
-# without the need for double-quotes.
-Version=0.0.3
+# source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 128; }
+#
+# # enable safe expansion
+# IFS=$'\n'
+# shopt -o noglob
+#
+# return 2>/dev/null  # stop if sourced
+# handleOptions $*    # standard options
+# main ${*:?+1}
+#
+# Now your script is ready.
 
 # main runs the provided command.
 main () {
-  cmd=${1^}   # capitalize
-  shift
-
-  $cmd "$@"
+  local cmd=${1^}   # capitalize
+  set -eu           # enable strict mode
+  [[ -v Prog && -v Version ]] && echo -e "$Prog version $Version\n"
+  $cmd ${*:2}
 }
 
-# announce runs a command after echoing it to stdout.
-# It can only echo arguments as it receives them,
-# so quotation marks that disambiguate the original command
-# may be missing when echoed.
-# Doesn't work on pipelines or other compound commands,
-# or any non-argument token.
-announce() {
-  echo "$@"
+Yellow=$'\033[1;33m'
+Reset=$'\033[0m'
+
+# cue runs its arguments as a command after echoing them to stdout in yellow.
+# Works with values that have newlines.
+cue() {
+  local i args=()
+  for (( i = 1; i <= $#; i++ )); do
+    printf -v args[i-1] %q "${!i}"
+  done
+
+  (IFS=' '; echo "$Yellow${args[*]}$Reset")
 
   "$@"
 }
 
-# processArgs handles standard flags.
-# It uses a global array for handling values without losing field separators.
-processArgs() {
-  set -- "${Args[@]}"
+# handleOptions provides some standard flags and returns the remaining arguments.
+handleOptions() {
+  local -i shifts=0
+  while [[ ${1:-} == -?* ]]; do
+    case $1 in
+      -h|--help )     echo "$Usage"; exit;;
 
-  echo "$Prog version $Version$Nl"
+      -v|--version )  echo "$Prog version $Version"; exit;;
 
-  case ${1:-} in
-    -h|--help ) echo "$Usage"; exit;;
+      -x|--trace )    set -x;;
 
-    --version ) exit;;
+      -- )            shift; shifts+=1; break;;
 
-    --trace ) shift; set -x;;
-  esac
+      * )             echo "fatal: unknown option $1"; exit;;
+    esac
+    shift
+    shifts+=1
+  done
 
-  (( $# )) || { echo "Error: at least one argument required.$Nl$Nl$Usage"; exit 2; }
+  (( $# > 0 )) || fatal "at least one argument required.\n\n$Usage" 2
 
-  Args=( "$@" )
+  return $shifts
 }
 
-set -o noglob
-Tab=$'\t'
-Nl=$'\n'
-IFS=$Nl
+## fp
+
+# each applies command to each argument from stdin.
+each() {
+  local command=$1 arg
+  while IFS='' read -r arg; do
+    eval "$command $arg"
+  done
+}
+
+# keepif filters lines from stdin using expression.
+# Lines are stored in the variable name provided for the expression.
+# It runs in a subshell so as not to pollute the namespace with $varname.
+# Works with values containing newlines.
+keepif() (
+  local command=$1 arg
+  while IFS='' read -r arg; do
+    eval "$command $arg" && echo "$arg"
+  done
+)
+
+## logging
+
+# debug logs a debug message.
+debug() { (( Debug )) && echo -e "debug: $1" >&2; }
+
+# error logs an error.
+# Works with values containing newline.
+error() { echo -e "error: $1" >&2; }
+
+# fatal echoes msg on stderr and exits with code rc.
+# Works with values containing newlines.
+fatal() {
+  local msg=$1 rc=${2:-$?}
+  echo -e "fatal: $msg" >&2
+  exit $rc
+}
+
+info() { echo -e "info: $1" >&2; }
 
