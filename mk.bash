@@ -31,7 +31,7 @@
 # IFS=$'\n'
 # shopt -o noglob
 #
-# return 2>/dev/null  # stop if sourced
+# return 2>/dev/null  # stop if sourced, for interactive debugging
 # handleOptions $*    # standard options
 # main ${*:?+1}
 #
@@ -74,10 +74,9 @@ handleOptions() {
 
       -- )            shift; shifts+=1; break;;
 
-      * )             echo "fatal: unknown option $1"; exit;;
+      * )             fatal "unknown option $1\n\n$Usage" 2;;
     esac
-    shift
-    shifts+=1
+    shift; shifts+=1
   done
 
   (( $# > 0 )) || fatal "at least one argument required.\n\n$Usage" 2
@@ -87,7 +86,52 @@ handleOptions() {
 
 ## fp
 
+# expression-based
+
+# asEach evaluates expression with $varname set to each line from stdin.
+# Works with expressions containing newlines.
+asEach() {
+  local varname=$1 expression=$2
+  local $varname
+  while IFS='' read -r $varname; do
+    eval "$expression"
+  done
+}
+
+# asKeepIf filters lines from stdin using expression.
+# Works with expressions containing newlines.
+asKeepIf() {
+  local varname=$1 expression=$2
+  local $varname
+  while IFS='' read -r $varname; do
+    ! eval "$expression" || echo ${!varname}
+  done
+}
+
+# asMap evaluates expression for its output with $varname set to each line from stdin.
+# Works with expressions containing newlines.
+asMap() {
+  local varname=$1 expression=$2
+  local $varname
+  while IFS='' read -r $varname; do
+    eval "echo \"$expression\""
+  done
+}
+
+# asRemoveIf filters lines from stdin using the negation of expression.
+# Works with expressions containing newlines.
+asRemoveIf() {
+  local varname=$1 expression=$2
+  local $varname
+  while IFS='' read -r $varname; do
+    eval "$expression" || echo ${!varname}
+  done
+}
+
+# command-based
+
 # each applies command to each argument from stdin.
+# Works with commands containing newlines.
 each() {
   local command=$1 arg
   while IFS='' read -r arg; do
@@ -95,16 +139,27 @@ each() {
   done
 }
 
-# keepif filters lines from stdin using expression.
-# Lines are stored in the variable name provided for the expression.
-# It runs in a subshell so as not to pollute the namespace with $varname.
-# Works with values containing newlines.
-keepif() (
+# keepIf filters lines from stdin using command.
+# Works with commands containing newlines.
+keepIf() {
   local command=$1 arg
   while IFS='' read -r arg; do
-    eval "$command $arg" && echo "$arg"
+    ! eval "$command $arg" || echo $arg
   done
-)
+}
+
+# map applies command to each line of stdin for its output.
+# Works with commands containing newlines.
+map() { each; }
+
+# removeIf filters lines from stdin using the negation of command.
+# Works with commands containing newlines.
+removeIf() {
+  local command=$1 arg
+  while IFS='' read -r arg; do
+    eval "$command $arg" || echo $arg
+  done
+}
 
 ## logging
 

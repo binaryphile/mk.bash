@@ -17,7 +17,7 @@ END
 Git-update() {
   (( $# > 0 )) || fatal 'directory required' 2
   echo "$*" |             # quoted to preserve IFS
-    keepif isGitRepo |
+    keepIf isGitRepo |
     each rebaseIfUpstreamHasProgressed
 }
 
@@ -59,6 +59,6 @@ source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found'
 IFS=$'\n'
 set -o noglob
 
-return 2>/dev/null  # stop if sourced
+return 2>/dev/null  # stop if sourced, for interactive debugging
 handleOptions $*    # standard options
 main ${*:?+1}
