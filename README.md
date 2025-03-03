@@ -1,4 +1,4 @@
-# mk.bash - Support for Project-Level Grouped Command Scripting
+# mk.bash - Project-Level Command Scripting
 
 ## Overview
 
@@ -16,8 +16,7 @@ makes it friendly to cutting and pasting shell code from web site examples, for 
 Staying close to the shell means having access to the same interface that is available
 universally to manage Unix systems, and the power that requires.
 
-`mk.bash` augments your script with these features to handle cross-cutting concerns with
-scripts:
+`mk.bash` helps you write scripts by handling these concerns:
 
 - a simple convention to define subcommands as regular Bash functions
 - strict mode to ensure errors stop execution
@@ -37,7 +36,8 @@ Copy `mk.bash` to a directory of your choice, such as `~/.local/libexec`.
     like.  We'll use `mk` for our examples.
 
 3.  Define `$Usage` for the usage help message and `$Prog` for program identity (usually
-    basename $0, see example).  Add the optional `$Version` number if you want.
+    basename $0, see example).  `$Version` is optional and, when set, is reported every time
+    the program is run.
 
 4.  Implement subcommands as capitalized Bash functions, like `Build()` or `Clean()`.
 
@@ -46,8 +46,8 @@ Copy `mk.bash` to a directory of your choice, such as `~/.local/libexec`.
 
 `main` runs the selected subcommand.  It echoes the program name and version, if defined,
 and then runs the subcommand's function.  The subcommand's function is simply the
-capitalized version of the subcommand name.  This allows you to use function names that
-would otherwise conflict with built-in commands, like `install`.
+capitalized version of the subcommand name.  This allows you to use subcommand names that
+would otherwise conflict with built-in commands you may need, such as `install`.
 
 ### Example
 
@@ -146,7 +146,7 @@ apple
 - `debug "Message"` (only logs if `$Debug` is set)
 - `info "Message"`
 - `error "Message"`
-- `fatal "Message"` (exits with error)
+- `fatal "Message" [exit code]` (exits with error)
 
 ## License
 

@@ -19,7 +19,7 @@
 # - variable expansions are safe and do not require quotes,
 # unless dealing with input or newlines:
 #   - IFS is set to newline
-#   - globbing is disabled
+#   - path expansion (globbing) is disabled
 #
 # Include the following boilerplate to begin:
 #
@@ -33,14 +33,14 @@
 #
 # return 2>/dev/null  # stop if sourced, for interactive debugging
 # handleOptions $*    # standard options
-# main ${*:?+1}
+# main ${*:$?+1}
 #
 # Now your script is ready.
 
 # main runs the provided command.
 main () {
-  local cmd=${1^}   # capitalize
   set -eu           # enable strict mode
+  local cmd=${1^}   # capitalize
   [[ -v Prog && -v Version ]] && echo -e "$Prog version $Version\n"
   $cmd ${*:2}
 }
@@ -49,7 +49,6 @@ Yellow=$'\033[1;33m'
 Reset=$'\033[0m'
 
 # cue runs its arguments as a command after echoing them to stdout in yellow.
-# Works with values that have newlines.
 cue() {
   local i args=()
   for (( i = 1; i <= $#; i++ )); do
@@ -57,6 +56,7 @@ cue() {
   done
 
   (IFS=' '; echo "$Yellow${args[*]}$Reset")
+  unset -v i args
 
   "$@"
 }
@@ -87,46 +87,40 @@ handleOptions() {
 ## fp
 
 # each applies command to each argument from stdin.
-# Works with commands containing newlines.
 each() {
   local command=$1 arg
-  while IFS='' read -r arg; do
+  while read -r arg; do
     eval "$command $arg"
   done
-  return 0  # so we don't accidentally return false
 }
 
 # keepif filters lines from stdin using command.
-# Works with commands containing newlines.
 keepif() {
   local command=$1 arg
-  while IFS='' read -r arg; do
+  while read -r arg; do
     eval "$command $arg" && echo $arg
   done
-  return 0  # so we don't accidentally return false
 }
 
 # map evaluates expression for its output with $varname set to each line from stdin.
-# Works with expressions containing newlines.
 map() {
   local varname=$1 expression=$2
   local $varname
-  while IFS='' read -r $varname; do
+  while read -r $varname; do
     eval "echo \"$expression\""
   done
 }
 
 ## logging
 
-# debug logs a debug message.
+# debug logs a debug message to stderr when $Debug is set to 1.
 debug() { (( Debug )) && echo -e "debug: $1" >&2; }
 
-# error logs an error.
+# error logs an error message to stderr.
 # Works with values containing newline.
 error() { echo -e "error: $1" >&2; }
 
-# fatal echoes msg on stderr and exits with code rc.
-# Works with values containing newlines.
+# fatal logs an error message on stderr and exits with result code rc.
 fatal() {
   local msg=$1 rc=${2:-$?}
   echo -e "fatal: $msg" >&2
