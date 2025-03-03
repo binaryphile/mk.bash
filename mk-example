@@ -23,7 +23,7 @@ END
 Git-update() {
   (( $# > 0 )) || fatal 'directory required' 2
   echo "$*" |             # quoted to preserve IFS
-    keepIf isGitRepo |
+    keepif isGitRepo |
     each rebaseIfUpstreamHasProgressed
 }
 

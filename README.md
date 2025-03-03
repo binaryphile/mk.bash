@@ -1,4 +1,4 @@
-# mk.bash - Support for Project-Level Grouped Command Scripting
+# mk.bash - Project-Level Command Scripting
 
 ## Overview
 
