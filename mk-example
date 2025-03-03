@@ -6,10 +6,16 @@ Version=0.1
 read -rd '' Usage <<END
 Usage:
 
-  $Prog git-update DIR [DIR...]
+  $Prog [OPTIONS] [--] git-update DIR [DIR...]
 
   git-update -- if the upstream branch has made progress, git-update rebases the current
   branch on its upstream.
+
+  Options (if multiple, must be provided as separate flags):
+
+    -h | --help     show this message and exit
+    -v | --version  show the program version and exit
+    -x | --trace    enable debug tracing
 END
 
 ## commands (capitalized)
@@ -42,8 +48,8 @@ rebaseIfUpstreamHasProgressed() (
   cue cd $dir
   cue git fetch
 
-  local ref=$(git rev-parse HEAD)                 || fatal "git rev-parse failed, could not git-update $dir"
-  local upstreamRef=$(git rev-parse @{upstream})  || fatal "git rev-parse failed, could not git-update $dir"
+  local ref=$(git rev-parse HEAD)                 || fatal "git rev-parse failed"
+  local upstreamRef=$(git rev-parse @{upstream})  || fatal "git rev-parse failed"
   isMergeBaseOf $ref $upstreamRef || cue git rebase $upstreamRef
 
   echo
