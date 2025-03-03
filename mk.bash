@@ -61,7 +61,9 @@ cue() {
   "$@"
 }
 
-# handleOptions provides some standard flags and returns the remaining arguments.
+# handleOptions provides some standard flags.
+# Its return code is the number of arguments processed (removed).
+# Call it before enabling strict mode.
 handleOptions() {
   local -i shifts=0
   while [[ ${1:-} == -?* ]]; do
@@ -74,12 +76,12 @@ handleOptions() {
 
       -- )            shift; shifts+=1; break;;
 
-      * )             fatal "unknown option $1\n\n$Usage" 2;;
+      * )             fatal "unknown option: $1\n\n${Usage:-}" 2;;
     esac
     shift; shifts+=1
   done
 
-  (( $# > 0 )) || fatal "at least one argument required.\n\n$Usage" 2
+  (( $# > 0 )) || fatal "at least one argument required.\n\n${Usage:-}" 2
 
   return $shifts
 }
