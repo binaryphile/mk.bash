@@ -86,50 +86,6 @@ handleOptions() {
 
 ## fp
 
-# expression-based
-
-# asEach evaluates expression with $varname set to each line from stdin.
-# Works with expressions containing newlines.
-asEach() {
-  local varname=$1 expression=$2
-  local $varname
-  while IFS='' read -r $varname; do
-    eval "$expression"
-  done
-}
-
-# asKeepIf filters lines from stdin using expression.
-# Works with expressions containing newlines.
-asKeepIf() {
-  local varname=$1 expression=$2
-  local $varname
-  while IFS='' read -r $varname; do
-    ! eval "$expression" || echo ${!varname}
-  done
-}
-
-# asMap evaluates expression for its output with $varname set to each line from stdin.
-# Works with expressions containing newlines.
-asMap() {
-  local varname=$1 expression=$2
-  local $varname
-  while IFS='' read -r $varname; do
-    eval "echo \"$expression\""
-  done
-}
-
-# asRemoveIf filters lines from stdin using the negation of expression.
-# Works with expressions containing newlines.
-asRemoveIf() {
-  local varname=$1 expression=$2
-  local $varname
-  while IFS='' read -r $varname; do
-    eval "$expression" || echo ${!varname}
-  done
-}
-
-# command-based
-
 # each applies command to each argument from stdin.
 # Works with commands containing newlines.
 each() {
@@ -137,27 +93,26 @@ each() {
   while IFS='' read -r arg; do
     eval "$command $arg"
   done
+  return 0  # so we don't accidentally return false
 }
 
-# keepIf filters lines from stdin using command.
+# keepif filters lines from stdin using command.
 # Works with commands containing newlines.
-keepIf() {
+keepif() {
   local command=$1 arg
   while IFS='' read -r arg; do
-    ! eval "$command $arg" || echo $arg
+    eval "$command $arg" && echo $arg
   done
+  return 0  # so we don't accidentally return false
 }
 
-# map applies command to each line of stdin for its output.
-# Works with commands containing newlines.
-map() { each; }
-
-# removeIf filters lines from stdin using the negation of command.
-# Works with commands containing newlines.
-removeIf() {
-  local command=$1 arg
-  while IFS='' read -r arg; do
-    eval "$command $arg" || echo $arg
+# map evaluates expression for its output with $varname set to each line from stdin.
+# Works with expressions containing newlines.
+map() {
+  local varname=$1 expression=$2
+  local $varname
+  while IFS='' read -r $varname; do
+    eval "echo \"$expression\""
   done
 }
 
