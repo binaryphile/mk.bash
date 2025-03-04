@@ -68,20 +68,20 @@ handleOptions() {
   local -i shifts=0
   while [[ ${1:-} == -?* ]]; do
     case $1 in
-      -h|--help )     echo "$Usage"; exit;;
+      -h|--help )     [[ -v Usage ]] && echo "$Usage"; exit;;
 
-      -v|--version )  echo "$Prog version $Version"; exit;;
+      -v|--version )  [[ -v Prog && -v Version ]] && echo "$Prog version $Version"; exit;;
 
       -x|--trace )    set -x;;
 
       -- )            shift; shifts+=1; break;;
 
-      * )             fatal "unknown option: $1\n\n${Usage:-}" 2;;
+      * )             [[ -v Usage ]] && echo -e "$Usage\n\n"; fatal "unknown option: $1" 2;;
     esac
     shift; shifts+=1
   done
 
-  (( $# > 0 )) || fatal "at least one argument required.\n\n${Usage:-}" 2
+  (( $# > 0 )) || { [[ -v Usage ]] && echo -e "$Usage\n\n"; fatal "at least one argument required." 2; }
 
   return $shifts
 }
