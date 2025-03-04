@@ -67,4 +67,4 @@ set -o noglob
 
 return 2>/dev/null  # stop if sourced, for interactive debugging
 handleOptions $*    # standard options
-main ${*:?+1}
+main ${*:$?+1}
