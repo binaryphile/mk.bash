@@ -22,7 +22,7 @@ universally to manage Unix systems, and the power that requires.
 - strict mode to ensure errors stop execution
 - safe expansion mode so variable expansions require less quotation
 - built-in `--help`, `--version`, and `--trace` flags
-- logging with `debug`, `info`, `error` and `fatal` for consistent output
+- logging with `mk.debug`, `mk.info`, `mk.error` and `mk.fatal` for consistent output
 
 ## Getting Started
 
@@ -42,9 +42,9 @@ Copy `mk.bash` to a directory of your choice, such as `~/.local/libexec`.
 4.  Implement subcommands as capitalized Bash functions, like `Build()` or `Clean()`.
 
 5.  Ensure the boilerplate is at the end of the script, which sources `mk.bash` and calls
-    `mk.bash`'s `main`.  Update the `source` directive with the directory for `mk.bash`.
+    `mk.bash`'s `mk.main`.  Update the `source` directive with the directory for `mk.bash`.
 
-`main` runs the selected subcommand.  It echoes the program name and version, if defined,
+`mk.main` runs the selected subcommand.  It echoes the program name and version, if defined,
 and then runs the subcommand's function.  The subcommand's function is simply the
 capitalized version of the subcommand name.  This allows you to use subcommand names that
 would otherwise conflict with built-in commands you may need, such as `install`.
@@ -80,9 +80,9 @@ source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found'
 IFS=$'\n'
 set -o noglob
 
-return 2>/dev/null  # stop execution if sourced, for debugging
-handleOptions $*
-main $*
+return 2>/dev/null      # stop execution if sourced, for debugging
+mk.handleOptions $*     # standard options
+main $*                 # showtime
 ```
 
 ## Using Your Script
@@ -110,43 +110,47 @@ $ ./mk -x clean
 
 ## Utility Functions
 
-### `cue` - Echo and Execute
+### `mk.cue` - Echo and Execute
 
 Displays commands in yellow while running them, to differentiate from command output.
 
 ```bash
-$ cue echo "Hello, World!"
-echo Hello, World! <- in yellow
+$ mk.cue echo "Hello, World!"
+echo Hello, World! # <- in yellow
 Hello, World!
 ```
 
-### `each` - Apply a Command to Each Line of Input
+### `mk.each` - Apply a Command to Each Line of Input
 
-`each` takes an argument for a command to run and iterates over each line of input,
-running the command with the line as arguments:
+Takes an argument for a command to run and iterates over each line of input, running the
+command with the line as arguments:
 
 ```bash
 # symlink shell rc files to visible names
-each 'ln -sf' <<END
+mk.each 'ln -sf' <<END
   ~/.bashrc ~/bashrc
   ~/.bash_profile ~/bash_profile
 END
 ```
 
-### `keepif` - Filter Input by Condition
+### `mk.keepif` - Filter Input by Condition
+
+Filter items based on feeding them to a boolean function.
 
 ```bash
 $ startsWithA() { [[ $1 == a* ]]; }
-$ echo -e "apple\nbanana\ncherry" | keepif startsWithA
+$ echo -e "apple\nbanana\ncherry" | mk.keepif startsWithA
 apple
 ```
 
 ## Debugging & Logging
 
-- `debug "Message"` (only logs if `$Debug` is set)
-- `info "Message"`
-- `error "Message"`
-- `fatal "Message" [exit code]` (exits with error)
+Output messages on stderr with the log level prepended.
+
+- `mk.debug "message"` (only logs if `$Debug` is defined and is a positive integer)
+- `mk.info "message"`
+- `mk.error "message"`
+- `mk.fatal "message" [exit code]` (exits with error)
 
 ## License
 

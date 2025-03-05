@@ -32,8 +32,8 @@
 # shopt -o noglob
 #
 # return 2>/dev/null  # stop if sourced, for interactive debugging
-# handleOptions $*    # standard options
-# main ${*:$?+1}
+# mk.handleOptions $*    # standard options
+# mk.main ${*:$?+1}
 #
 # Now your script is ready.
 
@@ -48,8 +48,8 @@ main () {
 Yellow=$'\033[1;33m'
 Reset=$'\033[0m'
 
-# cue runs its arguments as a command after echoing them to stdout in yellow.
-cue() {
+# mk.cue runs its arguments as a command after echoing them to stdout in yellow.
+mk.cue() {
   local i args=()
   for (( i = 1; i <= $#; i++ )); do
     printf -v args[i-1] %q "${!i}"
@@ -61,10 +61,10 @@ cue() {
   "$@"
 }
 
-# handleOptions provides some standard flags.
+# mk.handleOptions provides some standard flags.
 # Its return code is the number of arguments processed (removed).
 # Call it before enabling strict mode.
-handleOptions() {
+mk.handleOptions() {
   local -i shifts=0
   while [[ ${1:-} == -?* ]]; do
     case $1 in
@@ -88,24 +88,24 @@ handleOptions() {
 
 ## fp
 
-# each applies command to each argument from stdin.
-each() {
+# mk.each applies command to each argument from stdin.
+mk.each() {
   local command=$1 arg
   while read -r arg; do
     eval "$command $arg"
   done
 }
 
-# keepif filters lines from stdin using command.
-keepif() {
+# mk.keepif filters lines from stdin using command.
+mk.keepif() {
   local command=$1 arg
   while read -r arg; do
     eval "$command $arg" && echo $arg
   done
 }
 
-# map evaluates expression for its output with $varname set to each line from stdin.
-map() {
+# mk.map evaluates expression for its output with $varname set to each line from stdin.
+mk.map() {
   local varname=$1 expression=$2
   local $varname
   while read -r $varname; do
@@ -116,18 +116,18 @@ map() {
 ## logging
 
 # debug logs a debug message to stderr when $Debug is set to 1.
-debug() { (( Debug )) && echo -e "debug: $1" >&2; }
+mk.debug() { (( Debug )) && echo -e "debug: $1" >&2; }
 
 # error logs an error message to stderr.
 # Works with values containing newline.
-error() { echo -e "error: $1" >&2; }
+mk.error() { echo -e "error: $1" >&2; }
 
 # fatal logs an error message on stderr and exits with result code rc.
-fatal() {
+mk.fatal() {
   local msg=$1 rc=${2:-$?}
   echo -e "fatal: $msg" >&2
   exit $rc
 }
 
-info() { echo -e "info: $1" >&2; }
+mk.info() { echo -e "info: $1" >&2; }
 
