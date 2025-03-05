@@ -150,7 +150,7 @@ test_mk.handleOptions() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_mk.handleOptions $casename || {
+    t.run test_mk.handleOptions $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -206,7 +206,7 @@ test_mk.each() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_mk.each $casename || {
+    t.run test_mk.each $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -269,7 +269,7 @@ test_mk.keepif() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_mk.keepif $casename || {
+    t.run test_mk.keepif $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -327,7 +327,7 @@ test_mk.map() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_mk.map $casename || {
+    t.run test_mk.map $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }

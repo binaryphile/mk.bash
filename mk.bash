@@ -37,8 +37,8 @@
 #
 # Now your script is ready.
 
-# main runs the provided command.
-main () {
+# mk.main runs the provided command.
+mk.main () {
   set -eu           # enable strict mode
   local cmd=${1^}   # capitalize
   [[ -v Prog && -v Version ]] && echo -e "$Prog version $Version\n"
@@ -76,12 +76,12 @@ mk.handleOptions() {
 
       -- )            shift; shifts+=1; break;;
 
-      * )             [[ -v Usage ]] && echo -e "$Usage\n\n"; fatal "unknown option: $1" 2;;
+      * )             [[ -v Usage ]] && echo -e "$Usage\n\n"; mk.fatal "unknown option: $1" 2;;
     esac
     shift; shifts+=1
   done
 
-  (( $# > 0 )) || { [[ -v Usage ]] && echo -e "$Usage\n\n"; fatal "at least one argument required." 2; }
+  (( $# > 0 )) || { [[ -v Usage ]] && echo -e "$Usage\n\n"; mk.fatal "at least one argument required." 2; }
 
   return $shifts
 }
@@ -122,7 +122,7 @@ mk.debug() { (( Debug )) && echo -e "debug: $1" >&2; }
 # Works with values containing newline.
 mk.error() { echo -e "error: $1" >&2; }
 
-# fatal logs an error message on stderr and exits with result code rc.
+# mk.fatal logs an error message on stderr and exits with result code rc.
 mk.fatal() {
   local msg=$1 rc=${2:-$?}
   echo -e "fatal: $msg" >&2
