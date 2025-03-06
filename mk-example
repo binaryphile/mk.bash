@@ -21,10 +21,10 @@ END
 ## commands (capitalized)
 
 Git-update() {
-  (( $# > 0 )) || fatal 'directory required' 2
+  (( $# > 0 )) || mk.fatal 'directory required' 2
   echo "$*" |             # quoted to preserve IFS
-    keepif isGitRepo |
-    each rebaseIfUpstreamHasProgressed
+    mk.keepif isGitRepo |
+    mk.each rebaseIfUpstreamHasProgressed
 }
 
 ## helpers
@@ -45,12 +45,12 @@ isMergeBaseOf() {
 rebaseIfUpstreamHasProgressed() (
   local dir=$1
 
-  cue cd $dir
-  cue git fetch
+  mk.cue cd $dir
+  mk.cue git fetch
 
-  local ref=$(git rev-parse HEAD)                 || fatal "git rev-parse failed"
-  local upstreamRef=$(git rev-parse @{upstream})  || fatal "git rev-parse failed"
-  isMergeBaseOf $ref $upstreamRef || cue git rebase $upstreamRef
+  local ref=$(git rev-parse HEAD)
+  local upstreamRef=$(git rev-parse @{upstream})
+  isMergeBaseOf $ref $upstreamRef || mk.cue git rebase $upstreamRef
 
   echo
 )
@@ -65,6 +65,6 @@ source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found'
 IFS=$'\n'
 set -o noglob
 
-return 2>/dev/null  # stop if sourced, for interactive debugging
-handleOptions $*    # standard options
-main ${*:$?+1}
+return 2>/dev/null    # stop if sourced, for interactive debugging
+mk.handleOptions $*   # standard options
+mk.main ${*:$?+1}     # showtime

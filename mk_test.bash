@@ -2,18 +2,18 @@
 
 source ./mk.bash
 
-test_cue() {
+test_mk.cue() {
   ## act
 
   # run the command and capture the output and result code
-  got=$(cue echo "hello, world!" 2>&1)
+  got=$(mk.cue echo "hello, world!" 2>&1)
   rc=$?
 
   ## assert
 
   # assert no error
   (( rc == 0 )) || {
-    echo -e "    test_cue: error = $rc, want: 0\n$got"
+    echo -e "    test_mk.cue: error = $rc, want: 0\n$got"
     return 1
   }
 
@@ -26,13 +26,13 @@ test_cue() {
 hello, world!"
 
   [[ $got == "$want" ]] || {
-    echo -e "    test_cue: got doesn't match want:\n$(t.diff "$got" "$want")\n"
+    echo -e "    test_mk.cue: got doesn't match want:\n$(t.diff "$got" "$want")\n"
     echo "    got = ${got@Q}"
     return 1
   }
 }
 
-test_handleOptions() {
+test_mk.handleOptions() {
   # test case parameters
 
   local -A case1=(
@@ -126,21 +126,21 @@ test_handleOptions() {
 
     # run the command and capture the output and result code
     local got rc
-    got=$(eval "handleOptions $args" 2>&1) && rc=$? || rc=$?
+    got=$(eval "mk.handleOptions $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
 
     # assert that we got the wanted result
     (( rc == wantrc )) || {
-      echo -e "        test_handleOptions/$name: rc = $rc, want: $wantrc\n$got"
+      echo -e "\ttest_mk.handleOptions/$name: rc = $rc, want: $wantrc\n$got"
       return 1
     }
 
     [[ -v want ]] && {
       # assert that we got the wanted output
       [[ $got == *"$want"* ]] || {
-        echo -e "        test_handleOptions/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-        echo "        got = ${got@Q}"
+        echo -e "\ttest_mk.handleOptions/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
+        echo -e "\tgot = ${got@Q}"
         return 1
       }
     }
@@ -150,7 +150,7 @@ test_handleOptions() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_handleOptions $casename || {
+    t.run test_mk.handleOptions $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -159,7 +159,7 @@ test_handleOptions() {
   return $failed
 }
 
-test_each() {
+test_mk.each() {
   # test case parameters
   local -A case1=(
     [name]='allow redirection'
@@ -184,20 +184,20 @@ test_each() {
 
     ## act
     local got rc
-    got=$(echo "$fields" | eval "each $args" 2>&1) && rc=$? || rc=$?
+    got=$(echo "$fields" | eval "mk.each $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
 
     # assert no error
     (( rc == 0 )) || {
-      echo -e "        test_each/$name: error = $rc, want: 0\n$got"
+      echo -e "\ttest_mk.each/$name: error = $rc, want: 0\n$got"
       return 1
     }
 
     # assert that we got the wanted output
     [[ $got == "$want" ]] || {
-      echo -e "        test_each/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo "        got = ${got@Q}"
+      echo -e "\ttest_mk.each/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
+      echo -e "\tgot = ${got@Q}"
       return 1
     }
 
@@ -206,7 +206,7 @@ test_each() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_each $casename || {
+    t.run test_mk.each $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -216,7 +216,7 @@ test_each() {
 }
 
 
-test_keepif() {
+test_mk.keepif() {
   isEven() { (( $1 % 2 == 0 )); }
 
   local -A case1=(
@@ -250,17 +250,17 @@ test_keepif() {
 
     ## act
     local got rc
-    got=$(echo "$fields" | eval "keepif $args" 2>&1) && rc=$? || rc=$?
+    got=$(echo "$fields" | eval "mk.keepif $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo -e "        test_keepif/$name: error = $rc, want: 0\n$got"
+      echo -e "\ttest_mk.keepif/$name: error = $rc, want: 0\n$got"
       return 1
     }
 
     [[ $got == "$want" ]] || {
-      echo -e "        test_keepif/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo "        got = ${got@Q}"
+      echo -e "\ttest_mk.keepif/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
+      echo "\tgot = ${got@Q}"
       return 1
     }
 
@@ -269,7 +269,7 @@ test_keepif() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_keepif $casename || {
+    t.run test_mk.keepif $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -278,7 +278,7 @@ test_keepif() {
   return $failed
 }
 
-test_map() {
+test_mk.map() {
   local -A case1=(
     [name]='prepend text'
     [args]="line 'prefix: \$line'"
@@ -308,17 +308,17 @@ test_map() {
 
     ## act
     local got rc
-    got=$(echo "$fields" | eval "map $args" 2>&1) && rc=$? || rc=$?
+    got=$(echo "$fields" | eval "mk.map $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo -e "        test_map/$name: error = $rc, want: 0\n$got"
+      echo -e "\ttest_mk.map/$name: error = $rc, want: 0\n$got"
       return 1
     }
 
     [[ $got == "$want" ]] || {
-      echo -e "        test_map/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo "        got = ${got@Q}"
+      echo -e "\ttest_mk.map/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
+      echo -e "\tgot = ${got@Q}"
       return 1
     }
 
@@ -327,7 +327,7 @@ test_map() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run subtest test_map $casename || {
+    t.run test_mk.map $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
