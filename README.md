@@ -35,18 +35,19 @@ Copy `mk.bash` to a directory of your choice, such as `~/.local/libexec`.
 1.  Create a script file in your project directory and `chmod +x` it.  Name it what you
     like.  We'll use `mk` for our examples.
 
-3.  Define `$Usage` for the usage help message and `$Prog` for program identity (usually
-    basename $0, see example).  `$Version` is optional and, when set, is reported every time
-    the program is run.
+3.  Define `$mkUsage` for the usage help message and `$mkProg` for program identity (usually
+    basename $0, see example).  `$mkVersion` is optional and, when set, is reported every time
+    the program is run.  They are all global variables prefixed with `mk` so as to namespace
+    the variables used with `mk.bash`.
 
-4.  Implement subcommands as capitalized Bash functions, like `Build()` or `Clean()`.
+4.  Implement subcommands as Bash functions, like `cmd.build()` or `cmd.clean()`.
 
 5.  Ensure the boilerplate is at the end of the script, which sources `mk.bash` and calls
     `mk.bash`'s `mk.main`.  Update the `source` directive with the directory for `mk.bash`.
 
 `mk.main` runs the selected subcommand.  It echoes the program name and version, if defined,
 and then runs the subcommand's function.  The subcommand's function is simply the
-capitalized version of the subcommand name.  This allows you to use subcommand names that
+subcommand name, prefixed with `cmd.`.  This allows you to use subcommand names that
 would otherwise conflict with built-in commands you may need, such as `install`.
 
 ### Example
@@ -54,22 +55,22 @@ would otherwise conflict with built-in commands you may need, such as `install`.
 ``` bash
 #!/usr/bin/env bash
 
-Prog=$(basename "$0")   # use the invoked filename as the program name
-Version=0.1
+mkProg=$(basename "$0")   # use the invoked filename as the program name
+mkVersion=0.1
 
-read -rd '' Usage <<END
+read -rd '' mkUsage <<END
 Usage:
 
-  $Prog clean
+  $mkProg clean
 
   clean -- removes temporary files like build artifacts and cache files.
 END
 
-## commands (capitalized)
+## commands
 
-Clean() {
+cmd.clean() {
   # cue echoes the supplied command, then runs it
-  cue find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
+  mk.cue find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
 }
 
 ## boilerplate
@@ -82,7 +83,7 @@ set -o noglob
 
 return 2>/dev/null      # stop execution if sourced, for debugging
 mk.handleOptions $*     # standard options
-main $*                 # showtime
+mk.main $*              # showtime
 ```
 
 ## Using Your Script
