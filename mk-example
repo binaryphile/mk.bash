@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-Prog=$(basename "$0")   # use the invoked filename as the program name
-Version=0.1
+mkProg=$(basename "$0")   # use the invoked filename as the program name
+mkVersion=0.2
 
-read -rd '' Usage <<END
+read -rd '' mkUsage <<END
 Usage:
 
-  $Prog [OPTIONS] [--] git-update DIR [DIR...]
+  $mkProg [OPTIONS] [--] git-update DIR [DIR...]
 
   git-update -- if the upstream branch has made progress, git-update rebases the current
   branch on its upstream.
@@ -18,9 +18,9 @@ Usage:
     -x | --trace    enable debug tracing
 END
 
-## commands (capitalized)
+## commands
 
-Git-update() {
+cmd.git-update() {
   (( $# > 0 )) || mk.fatal 'directory required' 2
   echo "$*" |             # quoted to preserve IFS
     mk.keepif isGitRepo |
@@ -28,6 +28,8 @@ Git-update() {
 }
 
 ## helpers
+
+# git-update
 
 # isGitRepo returns whether its argument contains a .git directory.
 isGitRepo() { [[ -d $1/.git ]]; }
@@ -39,8 +41,7 @@ isMergeBaseOf() {
   [[ $mergeBase == "$ref2" ]]
 }
 
-# rebaseIfUpstreamHasProgressed rebases a git repository
-# if its upstream branch has been updated.
+# rebaseIfUpstreamHasProgressed rebases a repo if its upstream branch has been updated.
 # It runs in a subshell so it can change directory without affecting the caller.
 rebaseIfUpstreamHasProgressed() (
   local dir=$1
@@ -59,7 +60,7 @@ rebaseIfUpstreamHasProgressed() (
 
 ## boilerplate
 
-source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 128; }
+source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 1; }
 
 # enable safe expansion
 IFS=$'\n'

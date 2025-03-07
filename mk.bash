@@ -3,14 +3,14 @@
 # To use it, create a command file called "mk" in the directory you want.
 # The directory should be where you want to run the command with "./mk".
 # The command file must source this file.
-# It must also define a usage message in $Usage,
-# and the program name in $Prog.
+# It must also define a usage message in $mkUsage,
+# and the program name in $mkProg.
 #
-# Subcommands are any function that is defined capitalized in the command file.
+# Subcommands are any function that is defined with the prefix "cmd." in the command file.
 # You may, of course, define other functions as well,
-# but they should not be capitalized unless you want a user to call them.
-# Users do not have to call subcommands with capitalization;
-# subcommands are capitalized automatically before calling their function.
+# but they should not be prefixed unless you want a user to call them.
+# Users do not have to call subcommands with the prefix;
+# subcommands are prefixed automatically before calling their function.
 #
 # This library relies on strict mode, which means:
 #
@@ -25,23 +25,23 @@
 #
 # ## boilerplate
 #
-# source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 128; }
+# source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 1; }
 #
 # # enable safe expansion
 # IFS=$'\n'
 # shopt -o noglob
 #
-# return 2>/dev/null  # stop if sourced, for interactive debugging
-# mk.handleOptions $*    # standard options
-# mk.main ${*:$?+1}
+# return 2>/dev/null    # stop if sourced, for interactive debugging
+# mk.handleOptions $*   # standard options
+# mk.main ${*:$?+1}     # showtime
 #
 # Now your script is ready.
 
 # mk.main runs the provided command.
 mk.main () {
   set -eu           # enable strict mode
-  local cmd=${1^}   # capitalize
-  [[ -v Prog && -v Version ]] && echo -e "$Prog version $Version\n"
+  local cmd=cmd.$1  # prefix
+  [[ -v mkProg && -v mkVersion ]] && echo -e "$mkProg version $mkVersion\n"
   $cmd ${*:2}
 }
 
@@ -68,20 +68,20 @@ mk.handleOptions() {
   local -i shifts=0
   while [[ ${1:-} == -?* ]]; do
     case $1 in
-      -h|--help )     [[ -v Usage ]] && echo "$Usage"; exit;;
+      -h|--help )     [[ -v mkUsage ]] && echo "$mkUsage"; exit;;
 
-      -v|--version )  [[ -v Prog && -v Version ]] && echo "$Prog version $Version"; exit;;
+      -v|--version )  [[ -v mkProg && -v mkVersion ]] && echo "$mkProg version $mkVersion"; exit;;
 
       -x|--trace )    set -x;;
 
       -- )            shift; shifts+=1; break;;
 
-      * )             [[ -v Usage ]] && echo -e "$Usage\n\n"; mk.fatal "unknown option: $1" 2;;
+      * )             [[ -v mkUsage ]] && echo -e "$mkUsage\n\n"; mk.fatal "unknown option: $1" 2;;
     esac
     shift; shifts+=1
   done
 
-  (( $# > 0 )) || { [[ -v Usage ]] && echo -e "$Usage\n\n"; mk.fatal "at least one argument required." 2; }
+  (( $# > 0 )) || { [[ -v mkUsage ]] && echo -e "$mkUsage\n\n"; mk.fatal "at least one argument required." 2; }
 
   return $shifts
 }
