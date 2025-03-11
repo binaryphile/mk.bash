@@ -6,8 +6,7 @@ test_mk.cue() {
   ## act
 
   # run the command and capture the output and result code
-  got=$(mk.cue echo "hello, world!" 2>&1)
-  rc=$?
+  got=$(mk.cue echo "hello, world!" 2>&1) && rc=$? || rc=$?
 
   ## assert
 
@@ -27,7 +26,7 @@ hello, world!"
 
   [[ $got == "$want" ]] || {
     echo -e "    test_mk.cue: got doesn't match want:\n$(t.diff "$got" "$want")\n"
-    echo "    got = ${got@Q}"
+    echo -e "    use this line to update want to match this output:\nwant=${got@Q}"
     return 1
   }
 }
@@ -37,12 +36,14 @@ test_mk.handleOptions() {
 
   local -A case1=(
     [name]='accept a no-option argument'
+
     [args]='one'
     [wantrc]=0
   )
 
   local -A case2=(
     [name]='require at least one argument'
+
     [args]=''
     [want]='at least one argument required'
     [wantrc]=2
@@ -50,40 +51,45 @@ test_mk.handleOptions() {
 
   local -A case3=(
     [name]='output help with the short option'
-    [Usage]='sample usage message'
+
     [args]='-h'
+    [mkUsage]='sample usage message'
     [want]='sample usage message'
     [wantrc]=0
   )
 
   local -A case3=(
     [name]='output help with the long option'
+
     [args]='--help'
-    [Usage]='sample usage message'
+    [mkUsage]='sample usage message'
     [want]='sample usage message'
     [wantrc]=0
   )
 
   local -A case4=(
     [name]='report version with the short option'
-    [Prog]='myprog'
-    [Version]='0.1'
+
     [args]='-v'
+    [mkProg]='myprog'
+    [mkVersion]='0.1'
     [want]='myprog version 0.1'
     [wantrc]=0
   )
 
   local -A case5=(
     [name]='report version with the long option'
-    [Prog]='myprog'
-    [Version]='0.1'
+
     [args]='--version'
+    [mkProg]='myprog'
+    [mkVersion]='0.1'
     [want]='myprog version 0.1'
     [wantrc]=0
   )
 
   local -A case6=(
     [name]='enable tracing with the short option'
+
     [args]='-x one'
     [want]='+++ shift'
     [wantrc]=1
@@ -91,6 +97,7 @@ test_mk.handleOptions() {
 
   local -A case7=(
     [name]='enable tracing with the long option'
+
     [args]='--trace one'
     [want]='+++ shift'
     [wantrc]=1
@@ -98,12 +105,14 @@ test_mk.handleOptions() {
 
   local -A case8=(
     [name]='stop taking options after --'
+
     [args]='-- --one'
     [wantrc]=1
   )
 
   local -A case9=(
     [name]='exit if there is an unknown option'
+
     [args]='-b'
     [want]='unknown option: -b'
     [wantrc]=2
@@ -120,7 +129,7 @@ test_mk.handleOptions() {
 
     # create variables from the keys/values of the test case map
     unset -v want   # unset optional fields
-    eval "$(t.inherit $casename)"
+    eval "$(tesht.inherit $casename)"
 
     ## act
 
@@ -140,7 +149,7 @@ test_mk.handleOptions() {
       # assert that we got the wanted output
       [[ $got == *"$want"* ]] || {
         echo -e "\ttest_mk.handleOptions/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-        echo -e "\tgot = ${got@Q}"
+        echo -e "\tuse this line to update want to match this output:\nwant=${got@Q}"
         return 1
       }
     }
@@ -150,7 +159,7 @@ test_mk.handleOptions() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run test_mk.handleOptions $casename || {
+    tesht.run test_mk.handleOptions $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -163,6 +172,7 @@ test_mk.each() {
   # test case parameters
   local -A case1=(
     [name]='allow redirection'
+
     [args]="'wc -c <<<'"
     [fields]=$'a\nab\nabc'
     [want]=$'2\n3\n4'
@@ -170,6 +180,7 @@ test_mk.each() {
 
   local -A case2=(
     [name]='accept empty input gracefully'
+
     [args]='echo'
     [fields]=''
     [want]=''
@@ -180,7 +191,7 @@ test_mk.each() {
     local casename=$1
 
     ## arrange
-    eval "$(t.inherit $casename)"
+    eval "$(tesht.inherit $casename)"
 
     ## act
     local got rc
@@ -197,7 +208,7 @@ test_mk.each() {
     # assert that we got the wanted output
     [[ $got == "$want" ]] || {
       echo -e "\ttest_mk.each/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo -e "\tgot = ${got@Q}"
+      echo -e "\tuse this line to update want to match this output:\nwant=${got@Q}"
       return 1
     }
 
@@ -206,7 +217,7 @@ test_mk.each() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run test_mk.each $casename || {
+    tesht.run test_mk.each $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -215,12 +226,12 @@ test_mk.each() {
   return $failed
 }
 
-
 test_mk.keepif() {
   isEven() { (( $1 % 2 == 0 )); }
 
   local -A case1=(
     [name]='keep even numbers'
+
     [args]='isEven'
     [fields]=$'1\n2\n3\n4'
     [want]=$'2\n4'
@@ -230,6 +241,7 @@ test_mk.keepif() {
 
   local -A case2=(
     [name]='keep non-empty lines'
+
     [args]='isNonEmpty'
     [fields]=$'\none\n\ntwo'
     [want]=$'one\ntwo'
@@ -237,6 +249,7 @@ test_mk.keepif() {
 
   local -A case3=(
     [name]='accept empty input gracefully'
+
     [args]='true'
     [fields]=''
     [want]=''
@@ -246,7 +259,7 @@ test_mk.keepif() {
     local casename=$1
 
     ## arrange
-    eval "$(t.inherit $casename)"
+    eval "$(tesht.inherit $casename)"
 
     ## act
     local got rc
@@ -260,7 +273,7 @@ test_mk.keepif() {
 
     [[ $got == "$want" ]] || {
       echo -e "\ttest_mk.keepif/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo "\tgot = ${got@Q}"
+      echo -e "\tuse this line to update want to match this output:\nwant=${got@Q}"
       return 1
     }
 
@@ -269,7 +282,7 @@ test_mk.keepif() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run test_mk.keepif $casename || {
+    tesht.run test_mk.keepif $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
@@ -281,6 +294,7 @@ test_mk.keepif() {
 test_mk.map() {
   local -A case1=(
     [name]='prepend text'
+
     [args]="line 'prefix: \$line'"
     [fields]=$'one\ntwo'
     [want]=$'prefix: one\nprefix: two'
@@ -288,6 +302,7 @@ test_mk.map() {
 
   local -A case2=(
     [name]='convert to uppercase'
+
     [args]="line '\${line^^}'"
     [fields]=$'one\ntwo'
     [want]=$'ONE\nTWO'
@@ -295,6 +310,7 @@ test_mk.map() {
 
   local -A case3=(
     [name]='accept empty input gracefully'
+
     [args]="line '\$line'"
     [fields]=''
     [want]=''
@@ -304,7 +320,7 @@ test_mk.map() {
     local casename=$1
 
     ## arrange
-    eval "$(t.inherit $casename)"
+    eval "$(tesht.inherit $casename)"
 
     ## act
     local got rc
@@ -318,7 +334,7 @@ test_mk.map() {
 
     [[ $got == "$want" ]] || {
       echo -e "\ttest_mk.map/$name got doesn't match want:\n$(t.diff "$got" "$want")\n"
-      echo -e "\tgot = ${got@Q}"
+      echo -e "\tuse this line to update want to match this output:\nwant=${got@Q}"
       return 1
     }
 
@@ -327,7 +343,7 @@ test_mk.map() {
 
   local failed=0 casename
   for casename in ${!case@}; do
-    t.run test_mk.map $casename || {
+    tesht.run test_mk.map $casename || {
       (( $? == 128 )) && return 128   # fatal
       failed=1
     }
