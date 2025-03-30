@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-mkProg=$(basename "$0")   # use the invoked filename as the program name
+Prog=$(basename "$0")   # use the invoked filename as the program name
 
 read -rd '' mkUsage <<END
 Usage:
 
-  $mkProg [OPTIONS] [--] COMMAND
+  $Prog [OPTIONS] [--] COMMAND
 
   Commands:
 
   The following commands update REPORT.json:
     cover -- run kcov and record coverage_percent
     lines -- run scc and record code_lines
-    stats -- run all three of the above
     test -- run tesht on task_test.bash and record test_failures
+    stats -- run all three
 
   Options (if multiple, must be provided as separate flags):
 
@@ -46,8 +46,8 @@ cmd.stats() {
 }
 
 cmd.test() {
-  count=$(tesht | tee /dev/tty | grep -o FAIL | wc -l)
-  setField test_failures $count REPORT.json
+  local result=$(tesht | tee /dev/tty | tail -n 1)
+  setField test_failures $result REPORT.json
 }
 
 ## helpers
@@ -83,7 +83,7 @@ glob() {
 setField() {
   local fieldname=$1 value=$2 filename=$3
 
-  [[ -e REPORT.json ]] || createReport REPORT.json
+  [[ -e $filename ]] || createReport $filename
   tmpname=$(mktemp tmp.XXXXXX) && trap "rm -f $tmpname" EXIT
   jq ".$fieldname = $value" $filename >$tmpname && mv $tmpname $filename
 }
@@ -98,6 +98,9 @@ source ~/.local/lib/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2
 IFS=$'\n'
 set -o noglob
 
+mk.SetProg $Prog
+mk.SetUsage "$Usage"
+
 return 2>/dev/null    # stop if sourced, for interactive debugging
-mk.handleOptions $*   # standard options
-mk.main ${*:$?+1}     # showtime
+mk.HandleOptions $*   # standard options
+mk.Main ${*:$?+1}     # showtime
