@@ -27,7 +27,7 @@ test_mk.Cue() {
 hello, world!"
 
   [[ $got == "$want" ]] || {
-    echo -e "\nmk.Cue: got doesn't match want:\n$(tesht.Diff "$got" "$want")\n"
+    echo "${NL}mk.Cue: got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
     echo "use this line to update want to match this output:${NL}want=${got@Q}"
     return 1
   }
@@ -204,7 +204,7 @@ test_mk.Each() {
 
     # assert no error
     (( rc == 0 )) || {
-      echo "${NL}mk.Each/$name: error = $rc, want: 0${NL}$got"
+      echo "${NL}mk.Each/$name: error = $rc, want: 0$NL$got"
       return 1
     }
 
@@ -331,7 +331,7 @@ test_mk.Map() {
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.Map/$name: error = $rc, want: 0\n$got"
+      echo "${NL}mk.Map/$name: error = $rc, want: 0$NL$got"
       return 1
     }
 

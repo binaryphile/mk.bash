@@ -1,5 +1,7 @@
 # mk.bash - Project-Level Command Scripting
 
+![version](badges/version.svg) ![lines](badges/lines.svg) ![tests](badges/tests.svg) ![coverage](badges/coverage.svg)
+
 ## Overview
 
 `mk.bash` is a minimalistic framework for creating Bash scripts that offer subcommands.
