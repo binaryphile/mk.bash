@@ -56,11 +56,12 @@
 # Variable declarations that are name references borrow the environment namespace, e.g.
 # "local -n ARRAY=$1".
 
+NL=$'\n'
+
 # mk.Main runs the provided command.
 mk.Main () {
-  set -eu           # enable strict mode
   local cmd=cmd.$1  # prefix
-  [[ -v ProgM && -v VersionM ]] && echo -e "$ProgM version $VersionM\n"
+  [[ -v ProgM && -v VersionM ]] && echo "$ProgM version $VersionM$NL"
   $cmd ${*:2}
 }
 
@@ -80,6 +81,24 @@ mk.Cue() {
   "$@"
 }
 
+# mk.Glob works the same independent of IFS, noglob and nullglob
+mk.Glob() {
+  local pattern=$1
+
+  local nullglobWasOn=0 noglobWasOn=1
+  [[ $(shopt nullglob) == *on ]] && nullglobWasOn=1 || shopt -s nullglob  # enable nullglob
+  [[ $- != *f* ]] && noglobWasOn=0 || set +o noglob                       # disable noglob
+
+  local sep=${IFS:0:1} result
+  local results=( $pattern )
+
+  # reset to old settings
+  (( noglobWasOn )) && set -o noglob
+  (( nullglobWasOn )) || shopt -u nullglob
+
+  mk.Stream "${results[@]}"
+}
+
 # mk.HandleOptions provides some standard flags.
 # Its return code is the number of arguments processed (removed).
 # Call it before enabling strict mode.
@@ -95,14 +114,21 @@ mk.HandleOptions() {
 
       -- )            shift; shifts+=1; break;;
 
-      * )             [[ -v UsageM ]] && echo -e "$UsageM\n\n"; mk.Fatal "unknown option: $1" 2;;
+      * )             [[ -v UsageM ]] && echo "$UsageM$NL$NL"; mk.Fatal "unknown option: $1" 2;;
     esac
     shift; shifts+=1
   done
 
-  (( $# > 0 )) || { [[ -v UsageM ]] && echo -e "$UsageM\n\n"; mk.Fatal "at least one argument required." 2; }
+  (( $# > 0 )) || { [[ -v UsageM ]] && echo "$UsageM$NL$NL"; mk.Fatal "at least one argument required." 2; }
 
   return $shifts
+}
+
+mk.SetDebug() {
+  case $1 in
+    on ) DebugM=1;;
+    * ) DebugM=0;;
+  esac
 }
 
 mk.SetProg() { ProgM=$1; }
@@ -136,21 +162,31 @@ mk.Map() {
   done
 }
 
+# mk.Stream echoes arguments escaped and separated by the first character IFS.
+mk.Stream() {
+  local arg
+  for arg in "$@"; do
+    printf "%q${IFS:0:1}" "$arg"
+  done
+}
+
 ## logging
 
-# mk.Debug logs a debug message to stderr when $Debug is set to 1.
-mk.Debug() { (( Debug )) && echo -e "debug: $1" >&2; }
+DebugM=0
+
+# mk.Debug logs a debug message to stderr when $DebugM is set to 1.
+mk.Debug() { (( DebugM )) && echo "debug: $1" >&2; }
 
 # mk.Error logs an error message to stderr.
 # Works with values containing newline.
-mk.Error() { echo -e "error: $1" >&2; }
+mk.Error() { echo "error: $1" >&2; }
 
 # mk.Fatal logs an error message on stderr and exits with result code rc.
 mk.Fatal() {
   local msg=$1 rc=${2:-$?}
-  echo -e "fatal: $msg" >&2
+  echo "fatal: $msg" >&2
   exit $rc
 }
 
-mk.Info() { echo -e "info: $1" >&2; }
+mk.Info() { echo "info: $1" >&2; }
 

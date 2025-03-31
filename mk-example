@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-mkProg=$(basename "$0")   # use the invoked filename as the program name
-mkVersion=0.2
+Prog=$(basename "$0")   # match what the user called
+Version=0.2
 
-read -rd '' mkUsage <<END
+read -rd '' Usage <<END
 Usage:
 
-  $mkProg [OPTIONS] [--] git-update DIR [DIR...]
+  $Prog [OPTIONS] [--] git-update DIR [DIR...]
 
   git-update -- if the upstream branch has made progress, git-update rebases the current
   branch on its upstream.
@@ -20,19 +20,17 @@ END
 
 ## commands
 
+# isGitRepo returns whether its argument contains a .git directory.
+isGitRepo() { [[ -d $1/.git ]]; }
+
 cmd.git-update() {
-  (( $# > 0 )) || mk.fatal 'directory required' 2
-  echo "$*" |             # quoted to preserve IFS
-    mk.keepif isGitRepo |
-    mk.each rebaseIfUpstreamHasProgressed
+  (( $# > 0 )) || mk.Fatal 'directory required' 2
+  mk.Stream $* |
+    mk.KeepIf isGitRepo |
+    mk.Each rebaseIfUpstreamHasProgressed
 }
 
 ## helpers
-
-# git-update
-
-# isGitRepo returns whether its argument contains a .git directory.
-isGitRepo() { [[ -d $1/.git ]]; }
 
 # isMergeBaseOf returns whether ref2 is the merge-base of ref and ref2.
 isMergeBaseOf() {
@@ -46,12 +44,12 @@ isMergeBaseOf() {
 rebaseIfUpstreamHasProgressed() (
   local dir=$1
 
-  mk.cue cd $dir
-  mk.cue git fetch
+  mk.Cue cd $dir
+  mk.Cue git fetch
 
   local ref=$(git rev-parse HEAD)
   local upstreamRef=$(git rev-parse @{upstream})
-  isMergeBaseOf $ref $upstreamRef || mk.cue git rebase $upstreamRef
+  isMergeBaseOf $ref $upstreamRef || mk.Cue git rebase $upstreamRef
 
   echo
 )
@@ -66,6 +64,10 @@ source ~/.local/lib/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2
 IFS=$'\n'
 set -o noglob
 
+mk.SetProg $Prog
+mk.SetUsage "$Usage"
+mk.SetVersion $Version
+
 return 2>/dev/null    # stop if sourced, for interactive debugging
-mk.handleOptions $*   # standard options
-mk.main ${*:$?+1}     # showtime
+mk.HandleOptions $*   # standard options
+mk.Main ${*:$?+1}     # showtime
