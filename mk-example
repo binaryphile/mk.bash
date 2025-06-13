@@ -3,15 +3,15 @@
 Prog=$(basename "$0")   # match what the user called
 Version=0.2
 
-read -rd '' Usage <<END
+read -rd '' Usage_ <<END
 Usage:
 
   $Prog [OPTIONS] [--] git-update DIR [DIR...]
 
-  git-update -- if the upstream branch has made progress, git-update rebases the current
-  branch on its upstream.
+  git-update    if the upstream branch has made progress, git-update rebases the current
+                branch on its upstream.
 
-  Options (if multiple, must be provided as separate flags):
+  Options:
 
     -h | --help     show this message and exit
     -v | --version  show the program version and exit
@@ -20,17 +20,29 @@ END
 
 ## commands
 
-# isGitRepo returns whether its argument contains a .git directory.
-isGitRepo() { [[ -d $1/.git ]]; }
-
 cmd.git-update() {
   (( $# > 0 )) || mk.Fatal 'directory required' 2
-  mk.Stream $* |
+  mk.Stream "$@" |
     mk.KeepIf isGitRepo |
     mk.Each rebaseIfUpstreamHasProgressed
 }
 
+cmd.urma() (  # subshell for cd
+  [[ -e ~/fa-token.txt ]] || mk.Fatal 'missing fontawesome token file: ~/fa-token.txt'
+  mk.Each mk.Cue <<'  END'
+    git clone git@stash.digi.com:idigi/urma-next ~/urma-next
+    cd ~/urma-next/urma-next/scripts
+    git checkout -b local origin/tlilley/local
+  END
+  export FONTAWESOME_PACKAGE_TOKEN=$(<~/fa-token.txt)
+  mk.Cue ./urma install
+
+)
+
 ## helpers
+
+# isGitRepo returns whether its argument contains a .git directory.
+isGitRepo() { [[ -d "$1"/.git ]]; }
 
 # isMergeBaseOf returns whether ref2 is the merge-base of ref and ref2.
 isMergeBaseOf() {
@@ -65,9 +77,9 @@ IFS=$'\n'
 set -o noglob
 
 mk.SetProg $Prog
-mk.SetUsage "$Usage"
+mk.SetUsage "$Usage_"
 mk.SetVersion $Version
 
 return 2>/dev/null    # stop if sourced, for interactive debugging
-mk.HandleOptions $*   # standard options
-mk.Main ${*:$?+1}     # showtime
+mk.HandleOptions "$@" # standard options
+mk.Main "${@:$?+1}"   # showtime
