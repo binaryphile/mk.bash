@@ -70,33 +70,69 @@ Reset=$'\033[0m'
 
 # mk.Cue runs its arguments as a command after echoing them to stdout in yellow.
 mk.Cue() {
-  local i args=()
-  for (( i = 1; i <= $#; i++ )); do
-    printf -v args[i-1] %q "${!i}"
-  done
-
-  (IFS=' '; echo "$Yellow${args[*]}$Reset")
-  unset -v i args
+  local output
+  printf -v output '%q ' "$@"
+  echo "$Yellow${output% }$Reset"
 
   "$@"
+}
+
+mk.noglobIsOn()   { [[ $- == *f* ]];                }
+mk.nullglobIsOn() { [[ $(shopt nullglob) == *on ]]; }
+
+mk.setNoglob()  {
+  case $1 in
+    on  ) set -o noglob;;
+    *   ) set +o noglob;;
+  esac
+}
+
+mk.setNullglob()  {
+  case $1 in
+    on  ) shopt -s nullglob;;
+    *   ) shopt -u nullglob;;
+  esac
+}
+
+mk.setGlobbing() {
+  case $1 in
+    on )
+      mk.setNoglob off
+      mk.setNullglob on
+      ;;
+    * )
+      mk.setNoglob on
+      mk.setNullglob off
+      ;;
+  esac
+}
+
+mk.GetGlobState() {
+  local noglobIsOn=0 nullglobIsOn=0
+  mk.noglobIsOn && noglobIsOn=1
+  mk.nullglobIsOn && nullglobIsOn=1
+  echo "( [noglob]=$noglobIsOn [nullglob]=$nullglobIsOn )"
+}
+
+mk.SetGlobState() {
+  local -A states=$1 # double-eval
+
+  (( states[noglob] == 1 )) && mk.setNoglob on || mk.setNoglob off
+  (( states[nullglob] == 1 )) && mk.setNullglob on || mk.setNullglob off
 }
 
 # mk.Glob works the same independent of IFS, noglob and nullglob
 mk.Glob() {
   local pattern=$1
 
-  local nullglobWasOn=0 noglobWasOn=1
-  [[ $(shopt nullglob) == *on ]] && nullglobWasOn=1 || shopt -s nullglob  # enable nullglob
-  [[ $- != *f* ]] && noglobWasOn=0 || set +o noglob                       # disable noglob
+  local globState=$(mk.GetGlobState)
+  mk.setGlobbing on
 
   local sep=${IFS:0:1} result
-  local results=( $pattern )
+  local results_=( $pattern )   # expansions may contain IFS chars
 
-  # reset to old settings
-  (( noglobWasOn )) && set -o noglob
-  (( nullglobWasOn )) || shopt -u nullglob
-
-  mk.Stream "${results[@]}"
+  mk.SetGlobState $globState
+  mk.Stream "${results_[@]}"
 }
 
 # mk.HandleOptions provides some standard flags.
@@ -134,6 +170,14 @@ mk.SetDebug() {
 mk.SetProg() { ProgM=$1; }
 mk.SetUsage() { UsageM=$1; }
 mk.SetVersion() { VersionM=$1; }
+
+mk.WithGlob() {
+  local globState=$(mk.GetGlobState)
+  mk.setGlobbing on
+  local IFS=' '
+  eval "$*"
+  mk.SetGlobState $globState
+}
 
 ## fp
 
