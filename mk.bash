@@ -77,8 +77,16 @@ mk.Cue() {
   "$@"
 }
 
+mk.dotglobIsOn()  { [[ $(shopt dotglob) == *on ]];  }
 mk.noglobIsOn()   { [[ $- == *f* ]];                }
 mk.nullglobIsOn() { [[ $(shopt nullglob) == *on ]]; }
+
+mk.setDotglob() {
+  case $1 in
+    on  ) shopt -s dotglob;;
+    *   ) shopt -u dotglob;;
+  esac
+}
 
 mk.setNoglob()  {
   case $1 in
@@ -94,13 +102,15 @@ mk.setNullglob()  {
   esac
 }
 
-mk.setGlobbing() {
+mk.SetGlobbing() {
   case $1 in
     on )
+      mk.setDotglob on
       mk.setNoglob off
       mk.setNullglob on
       ;;
     * )
+      mk.setDotglob off
       mk.setNoglob on
       mk.setNullglob off
       ;;
@@ -108,15 +118,17 @@ mk.setGlobbing() {
 }
 
 mk.GetGlobState() {
-  local noglobIsOn=0 nullglobIsOn=0
+  local dotglobIsOn=0 noglobIsOn=0 nullglobIsOn=0
+  mk.dotglobIsOn && dotglobIsOn=1
   mk.noglobIsOn && noglobIsOn=1
   mk.nullglobIsOn && nullglobIsOn=1
-  echo "( [noglob]=$noglobIsOn [nullglob]=$nullglobIsOn )"
+  echo "( [dotglob]=$dotglobIsOn [noglob]=$noglobIsOn [nullglob]=$nullglobIsOn )"
 }
 
 mk.SetGlobState() {
   local -A states=$1 # double-eval
 
+  (( states[dotglob] == 1 )) && mk.setDotglob on || mk.setDotglob off
   (( states[noglob] == 1 )) && mk.setNoglob on || mk.setNoglob off
   (( states[nullglob] == 1 )) && mk.setNullglob on || mk.setNullglob off
 }
@@ -126,7 +138,7 @@ mk.Glob() {
   local pattern=$1
 
   local globState=$(mk.GetGlobState)
-  mk.setGlobbing on
+  mk.SetGlobbing on
 
   local sep=${IFS:0:1} result
   local results_=( $pattern )   # expansions may contain IFS chars
@@ -173,7 +185,7 @@ mk.SetVersion() { VersionM=$1; }
 
 mk.WithGlob() {
   local globState=$(mk.GetGlobState)
-  mk.setGlobbing on
+  mk.SetGlobbing on
   local IFS=' '
   eval "$*"
   mk.SetGlobState $globState
