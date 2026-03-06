@@ -252,10 +252,14 @@ gitInitTask() {
 
 ## helpers
 
-# absDir resolves a path to its absolute directory.
-# Handles relative paths, symlinks in the path, and paths that already exist.
+# absDir resolves a path to its absolute form.
+# Handles relative paths, symlinks, "." and "..".
 absDir() {
-  cd -P "$(dirname "$1")"; echo "$PWD/$(basename "$1")"
+  if [[ -d $1 ]]; then
+    cd -P "$1"; echo "$PWD"
+  else
+    cd -P "$(dirname "$1")"; echo "$PWD/$(basename "$1")"
+  fi
 }
 
 # encodedConfigDir converts an absolute path to the Claude config directory path.
