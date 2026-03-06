@@ -256,9 +256,9 @@ gitInitTask() {
 # Handles relative paths, symlinks, "." and "..".
 absDir() {
   if [[ -d $1 ]]; then
-    cd -P "$1"; echo "$PWD"
+    (cd -P "$1"; echo "$PWD")
   else
-    cd -P "$(dirname "$1")"; echo "$PWD/$(basename "$1")"
+    (cd -P "$(dirname "$1")"; echo "$PWD/$(basename "$1")")
   fi
 }
 
