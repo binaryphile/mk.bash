@@ -28,7 +28,7 @@ main() {
   writeNixWrapperTask
   task.Ln nix-wrapper "$ProjectDir/bin/claude"
   writeFlakeNixTask
-  copyFlakeLockTask
+  linkFlakeLockTask
 
   section claude
   writeClaudeMdTask
@@ -37,6 +37,7 @@ main() {
 
   section git
   gitInitTask
+  gitAddFlakeTask
 
   task.Summarize
   echo
@@ -45,6 +46,8 @@ main() {
 }
 
 ## task definitions
+# Inner functions (fauxsure pattern) rely on dynamic scoping — their enclosing
+# task function must still be on the call stack when cmd invokes them.
 
 # base
 
@@ -53,14 +56,16 @@ mkdirTask() {
   local dir=$1
   desc   "create directory $dir"
   exist  "'$dir'"
-  cmd    "mkdir -p '$dir'"
+  mkdirP() { mkdir -p "$dir"; }
+  cmd mkdirP
 }
 
 # writeGitignoreTask creates an empty .gitignore.
 writeGitignoreTask() {
   desc   "create .gitignore"
   exist  "'$ProjectDir/.gitignore'"
-  cmd    "touch '$ProjectDir/.gitignore'"
+  touchGitignore() { touch "$ProjectDir/.gitignore"; }
+  cmd touchGitignore
 }
 
 # nix
@@ -170,14 +175,16 @@ FLAKE
   cmd writeFlakeNix
 }
 
-# copyFlakeLockTask copies flake.lock from the first sibling project that has one.
-copyFlakeLockTask() {
+# linkFlakeLockTask hardlinks flake.lock from the first sibling project that has one.
+linkFlakeLockTask() {
   local sibling
   for sibling in "$ProjectDir"/../*/flake.lock; do
     [[ -e $sibling ]] || continue
-    desc   "copy flake.lock from $(dirname "$sibling")"
-    exist  "'$ProjectDir/flake.lock'"
-    cmd    "cp '$sibling' '$ProjectDir/flake.lock'"
+    desc   "hardlink flake.lock from $(dirname "$sibling")"
+    isSameFile() { [[ "$ProjectDir/flake.lock" -ef "$sibling" ]]; }
+    ok isSameFile
+    linkFlakeLock() { ln -f "$sibling" "$ProjectDir/flake.lock"; }
+    cmd linkFlakeLock
     return
   done
 }
@@ -247,7 +254,17 @@ MD
 gitInitTask() {
   desc   "initialize git repository"
   exist  "'$ProjectDir/.git'"
-  cmd    "git init '$ProjectDir'"
+  initGit() { git init "$ProjectDir"; }
+  cmd initGit
+}
+
+# gitAddFlakeTask stages flake files so nix develop works.
+gitAddFlakeTask() {
+  desc   "git add flake.nix and flake.lock"
+  flakeTracked() { git -C "$ProjectDir" ls-files --error-unmatch flake.nix flake.lock >/dev/null 2>&1; }
+  ok flakeTracked
+  addFlake() { git -C "$ProjectDir" add flake.nix flake.lock; }
+  cmd addFlake
 }
 
 ## helpers
@@ -283,13 +300,15 @@ if [[ -e "$Here"/../task.bash/task.bash ]]; then
 elif [[ -e "$Here"/task.bash ]]; then
   source "$Here"/task.bash
 else
-  Lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/task.bash/develop/task.bash) || exit
-  eval "$Lib"
+  echo "error: task.bash not found" >&2
+  exit 1
 fi
 source "$Here"/mk.bash
-unset -v Here Lib
+unset -v Here
 
 return 2>/dev/null  # stop here if sourced, for interactive debugging
+
+set -euo pipefail
 
 # parse options
 while [[ ${1:-} == -?* ]]; do
@@ -300,7 +319,7 @@ Usage: scaffold [OPTIONS] <project-dir> [packages...]
 
 Create a new project with nix and Claude Code infrastructure.
 
-Default packages: bash coreutils git
+Default packages: bash coreutils git nodejs
 
 Options:
   -h, --help    show this message and exit
@@ -312,6 +331,8 @@ Options:
     -x|--trace ) set -x;;
 
     -- ) shift; break;;
+
+    * ) mk.Fatal "unknown option: $1";;
   esac
   shift
 done
@@ -324,7 +345,7 @@ shift
 AbsDir=$(absDir "$ProjectDir")
 
 if [[ $# -eq 0 ]]; then
-  Packages=(bash coreutils git)
+  Packages=(bash coreutils git nodejs)
 else
   Packages=("$@")
 fi
