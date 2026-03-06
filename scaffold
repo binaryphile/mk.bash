@@ -274,8 +274,8 @@ fatal() {
   exit "${2:-1}"
 }
 
-# each applies its arguments as a command to each line from stdin.
-each() {
+# mk.Each applies its arguments as a command to each line from stdin.
+mk.Each() {
   local command=$1 arg
   while IFS='' read -r arg; do
     eval "$command $arg"
@@ -308,7 +308,7 @@ return 2>/dev/null  # stop here if sourced, for interactive debugging
 while [[ ${1:-} == -?* ]]; do
   case $1 in
     -h|--help )
-      each echo <<'      HELP'
+      mk.Each echo <<'      HELP'
         Usage: scaffold [OPTIONS] <project-dir> [packages...]
 
         Create a new project with nix and Claude Code infrastructure.
