@@ -131,5 +131,5 @@ mk.SetUsage "$Usage"
 mk.SetVersion $Version
 
 return 2>/dev/null    # stop if sourced, for interactive debugging
-mk.HandleOptions $*   # standard options
-mk.Main ${*:$?+1}     # showtime
+mk.HandleOptions $*   # handle standard options, returns 1-based offset
+mk.Main ${*:$?}       # remaining arguments

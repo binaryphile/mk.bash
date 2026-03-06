@@ -18,6 +18,7 @@
             bash
             coreutils
             git
+            nodejs
           ];
         };
       }

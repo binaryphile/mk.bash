@@ -32,8 +32,8 @@
 # shopt -o noglob
 #
 # return 2>/dev/null    # stop if sourced, for interactive debugging
-# mk.HandleOptions $*   # standard options
-# mk.Main ${*:$?+1}     # showtime
+# mk.HandleOptions $*   # standard options, returns 1-based offset
+# mk.Main ${*:$?}       # showtime
 #
 # Now your script is ready.
 
@@ -148,7 +148,8 @@ mk.Glob() {
 }
 
 # mk.HandleOptions provides some standard flags.
-# Its return code is the number of arguments processed (removed).
+# Its return code is the 1-based offset of the first non-option argument,
+# suitable for use directly as ${*:$?} in the caller.
 # Call it before enabling strict mode.
 mk.HandleOptions() {
   local -i shifts=0
@@ -169,7 +170,7 @@ mk.HandleOptions() {
 
   (( $# > 0 )) || { [[ -v UsageM ]] && echo "$UsageM$NL$NL"; mk.Fatal "at least one argument required." 2; }
 
-  return $shifts
+  return $((shifts + 1))
 }
 
 mk.SetDebug() {
