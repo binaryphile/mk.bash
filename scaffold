@@ -295,16 +295,16 @@ return 2>/dev/null  # stop here if sourced, for interactive debugging
 while [[ ${1:-} == -?* ]]; do
   case $1 in
     -h|--help )
-      mk.Each echo <<'      HELP'
-        Usage: scaffold [OPTIONS] <project-dir> [packages...]
+      cat <<'      HELP'
+Usage: scaffold [OPTIONS] <project-dir> [packages...]
 
-        Create a new project with nix and Claude Code infrastructure.
+Create a new project with nix and Claude Code infrastructure.
 
-        Default packages: bash coreutils git
+Default packages: bash coreutils git
 
-        Options:
-          -h, --help    show this message and exit
-          -x, --trace   enable debug tracing
+Options:
+  -h, --help    show this message and exit
+  -x, --trace   enable debug tracing
       HELP
       exit
       ;;
