@@ -1,0 +1,335 @@
+#!/usr/bin/env bash
+
+# scaffold -- create a new project with nix and Claude Code infrastructure
+
+# Naming Policy:
+#
+# All function and variable names are camelCased.
+#
+# Local variable names begin with lowercase letters, e.g. localVariable.
+# Global variable names begin with uppercase letters, e.g. GlobalVariable.
+#
+# Variable declarations that are name references borrow the environment namespace, e.g.
+# "local -n ARRAY=$1".
+#
+# Locally-defined task functions are suffixed with "Task".
+
+main() {
+  set -euo pipefail
+
+  [[ -n ${ProjectDir:-} ]] || fatal "project directory required"
+
+  section base
+  mkdirTask "$ProjectDir/bin"
+  writeGitignoreTask
+  writeEnvrcTask
+
+  section nix
+  writeNixWrapperTask
+  task.Ln nix-wrapper "$ProjectDir/bin/claude"
+  writeFlakeNixTask
+  copyFlakeLockTask
+
+  section claude
+  writeClaudeMdTask
+  writeSettingsLocalTask
+  writeMemoryMdTask
+
+  section git
+  gitInitTask
+
+  task.Summarize
+  echo
+  echo "next steps:"
+  echo "  cd $ProjectDir && direnv allow"
+}
+
+## task definitions
+
+# base
+
+# mkdirTask creates a directory if it doesn't exist.
+mkdirTask() {
+  local dir=$1
+  desc   "create directory $dir"
+  exist  "'$dir'"
+  cmd    "mkdir -p '$dir'"
+}
+
+# writeGitignoreTask creates an empty .gitignore.
+writeGitignoreTask() {
+  desc   "create .gitignore"
+  exist  "'$ProjectDir/.gitignore'"
+  cmd    "touch '$ProjectDir/.gitignore'"
+}
+
+# nix
+
+# writeNixWrapperTask creates bin/nix-wrapper for running commands inside nix develop.
+writeNixWrapperTask() {
+  desc   "create bin/nix-wrapper"
+  exist  "'$ProjectDir/bin/nix-wrapper'"
+
+  writeNixWrapper() {
+    cat >"$ProjectDir/bin/nix-wrapper" <<'WRAPPER'
+#!/usr/bin/env bash
+# Generic wrapper for running commands inside nix develop.
+# Symlink to this file with the name of the command you want to wrap.
+# Example: ln -s nix-wrapper node
+
+set -eu
+
+# Check if flake.nix exists in current directory or any ancestor
+has_flake() {
+  local dir="$PWD"
+  while [[ "$dir" != "/" ]]; do
+    [[ -f "$dir/flake.nix" ]] && return 0
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
+main() {
+  local asCalled folder prog
+  asCalled=$(basename "$0")
+  folder=$(cd "$(dirname "$0")"; pwd)
+
+  # Find the real program, excluding our bin/ directory
+  # May be empty for commands that only exist inside nix (node, npm)
+  prog=$(type -Pa "$asCalled" | grep -v "^$folder/" | head -1)
+
+  # IN_NIX_SHELL is set automatically by nix develop (even with -c)
+  # If already in nix develop, or no flake.nix found, run prog directly
+  # Otherwise use nix develop to get the right environment
+  if [[ ${IN_NIX_SHELL:-} == impure ]] || ! has_flake; then
+    exec "$prog" "$@"
+  else
+    # Use prog if found, otherwise asCalled (nix will provide it)
+    exec nix develop -c "${prog:-$asCalled}" "$@"
+  fi
+}
+
+main "$@"
+WRAPPER
+    chmod +x "$ProjectDir/bin/nix-wrapper"
+  }
+  cmd writeNixWrapper
+}
+
+# writeEnvrcTask creates .envrc with PROJECT_ROOT and bin on PATH.
+writeEnvrcTask() {
+  desc   "create .envrc"
+  exist  "'$ProjectDir/.envrc'"
+
+  writeEnvrc() {
+    cat >"$ProjectDir/.envrc" <<'ENVRC'
+export PROJECT_ROOT=$(cd "$(dirname "$BASH_SOURCE")"; pwd)
+export PATH=$PROJECT_ROOT/bin:$PATH
+ENVRC
+  }
+  cmd writeEnvrc
+}
+
+# writeFlakeNixTask creates flake.nix with the specified Packages.
+writeFlakeNixTask() {
+  desc   "create flake.nix (packages: ${Packages[*]})"
+  exist  "'$ProjectDir/flake.nix'"
+
+  writeFlakeNix() {
+    local pkgList=""
+    local pkg
+    for pkg in "${Packages[@]}"; do
+      pkgList+=$NL"            $pkg"
+    done
+
+    cat >"$ProjectDir/flake.nix" <<FLAKE
+{
+  description = "Development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
+      in {
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [$pkgList
+          ];
+        };
+      }
+    );
+}
+FLAKE
+  }
+  cmd writeFlakeNix
+}
+
+# copyFlakeLockTask copies flake.lock from the first sibling project that has one.
+copyFlakeLockTask() {
+  local sibling
+  for sibling in "$ProjectDir"/../*/flake.lock; do
+    [[ -e $sibling ]] || continue
+    desc   "copy flake.lock from $(dirname "$sibling")"
+    exist  "'$ProjectDir/flake.lock'"
+    cmd    "cp '$sibling' '$ProjectDir/flake.lock'"
+    return
+  done
+}
+
+# claude
+
+# writeClaudeMdTask creates CLAUDE.md with Tandem Protocol include.
+writeClaudeMdTask() {
+  desc   "create CLAUDE.md"
+  exist  "'$ProjectDir/CLAUDE.md'"
+
+  writeClaudeMd() {
+    local projectName=$(basename "$ProjectDir")
+    cat >"$ProjectDir/CLAUDE.md" <<EOF
+# Tandem Protocol
+@~/projects/tandem-protocol/README.md
+
+# $projectName
+EOF
+  }
+  cmd writeClaudeMd
+}
+
+# writeSettingsLocalTask creates .claude/settings.local.json with Era permissions.
+writeSettingsLocalTask() {
+  desc   "create .claude/settings.local.json"
+  exist  "'$ProjectDir/.claude/settings.local.json'"
+
+  writeSettingsLocal() {
+    mkdir -p "$ProjectDir/.claude"
+    cat >"$ProjectDir/.claude/settings.local.json" <<'JSON'
+{
+  "permissions": {
+    "allow": [
+      "mcp__era__list",
+      "mcp__era__search"
+    ]
+  }
+}
+JSON
+  }
+  cmd writeSettingsLocal
+}
+
+# writeMemoryMdTask creates the Era-directive memory/MEMORY.md in the Claude config directory.
+writeMemoryMdTask() {
+  local configDir
+  configDir=$(encodedConfigDir "$AbsDir")
+
+  desc   "create memory/MEMORY.md in $configDir"
+  exist  "'$configDir/memory/MEMORY.md'"
+
+  writeMemoryMd() {
+    mkdir -p "$configDir/memory"
+    cat >"$configDir/memory/MEMORY.md" <<'MD'
+# Memory
+
+DO NOT STORE ANYTHING IN THIS FILE. All memories go to Era via `mcp__era__store`. Search Era with `mcp__era__search` to recall information. This file exists only to hold this directive. Do not add sections, bullet points, or any other content here.
+MD
+  }
+  cmd writeMemoryMd
+}
+
+# git
+
+# gitInitTask initializes a git repository in ProjectDir.
+gitInitTask() {
+  desc   "initialize git repository"
+  exist  "'$ProjectDir/.git'"
+  cmd    "git init '$ProjectDir'"
+}
+
+## helpers
+
+# absDir resolves a path to its absolute directory.
+# Handles relative paths, symlinks in the path, and paths that already exist.
+absDir() {
+  cd -P "$(dirname "$1")"; echo "$PWD/$(basename "$1")"
+}
+
+# encodedConfigDir converts an absolute path to the Claude config directory path.
+# /home/ted/projects/foo -> ~/.claude/projects/-home-ted-projects-foo
+# Claude Code replaces both slashes and dots with dashes.
+encodedConfigDir() {
+  local absPath=$1
+  local encoded=${absPath//\//-}
+  encoded=${encoded//./-}
+  echo "$HOME/.claude/projects/$encoded"
+}
+
+# fatal prints an error message to stderr and exits.
+fatal() {
+  echo "fatal: $1" >&2
+  exit "${2:-1}"
+}
+
+# section prints a section header.
+section() { echo "$NL[section $1]"; }
+
+## globals
+
+NL=$'\n'
+
+## boilerplate
+
+Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURCE" || echo .)")"; pwd)
+if [[ -e "$Here"/../task.bash/task.bash ]]; then
+  source "$Here"/../task.bash/task.bash
+elif [[ -e "$Here"/task.bash ]]; then
+  source "$Here"/task.bash
+else
+  Lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/task.bash/develop/task.bash) || exit
+  eval "$Lib"
+fi
+unset -v Here Lib
+
+return 2>/dev/null  # stop here if sourced, for interactive debugging
+
+# parse options
+while [[ ${1:-} == -?* ]]; do
+  case $1 in
+    -h|--help )
+      echo "Usage: scaffold [OPTIONS] <project-dir> [packages...]"
+      echo
+      echo "Create a new project with nix and Claude Code infrastructure."
+      echo
+      echo "Default packages: bash coreutils git"
+      echo
+      echo "Options:"
+      echo "  -h, --help    show this message and exit"
+      echo "  -x, --trace   enable debug tracing"
+      exit
+      ;;
+
+    -x|--trace ) set -x;;
+
+    -- ) shift; break;;
+  esac
+  shift
+done
+
+[[ ${1:-} ]] || fatal "usage: scaffold <project-dir> [packages...]"
+
+ProjectDir=$1
+shift
+
+AbsDir=$(absDir "$ProjectDir")
+
+if [[ $# -eq 0 ]]; then
+  Packages=(bash coreutils git)
+else
+  Packages=("$@")
+fi
+
+main
