@@ -17,7 +17,7 @@
 main() {
   set -euo pipefail
 
-  [[ -n ${ProjectDir:-} ]] || fatal "project directory required"
+  [[ -n ${ProjectDir:-} ]] || mk.Fatal "project directory required"
 
   section base
   mkdirTask "$ProjectDir/bin"
@@ -268,26 +268,8 @@ encodedConfigDir() {
   echo "$HOME/.claude/projects/$encoded"
 }
 
-# fatal prints an error message to stderr and exits.
-fatal() {
-  echo "fatal: $1" >&2
-  exit "${2:-1}"
-}
-
-# mk.Each applies its arguments as a command to each line from stdin.
-mk.Each() {
-  local command=$1 arg
-  while IFS='' read -r arg; do
-    eval "$command $arg"
-  done
-}
-
 # section prints a section header.
 section() { echo "$NL[section $1]"; }
-
-## globals
-
-NL=$'\n'
 
 ## boilerplate
 
@@ -300,6 +282,7 @@ else
   Lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/task.bash/develop/task.bash) || exit
   eval "$Lib"
 fi
+source "$Here"/mk.bash
 unset -v Here Lib
 
 return 2>/dev/null  # stop here if sourced, for interactive debugging
@@ -329,7 +312,7 @@ while [[ ${1:-} == -?* ]]; do
   shift
 done
 
-[[ ${1:-} ]] || fatal "usage: scaffold <project-dir> [packages...]"
+[[ ${1:-} ]] || mk.Fatal "usage: scaffold <project-dir> [packages...]"
 
 ProjectDir=$1
 shift
