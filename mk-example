@@ -82,4 +82,4 @@ mk.SetVersion $Version
 
 return 2>/dev/null    # stop if sourced, for interactive debugging
 mk.HandleOptions "$@" # standard options
-mk.Main "${@:$?+1}"   # showtime
+mk.Main "${@:$?}"      # showtime

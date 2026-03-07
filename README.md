@@ -21,33 +21,30 @@ universally to manage Unix systems, and the power that requires.
 `mk.bash` helps you write scripts by handling these concerns:
 
 - a simple convention to define subcommands as regular Bash functions
-- strict mode to ensure errors stop execution
-- safe expansion mode so variable expansions require less quotation
+- safe expansion mode (`IFS=$'\n'`, `set -o noglob`) so variable expansions require less quotation
 - built-in `--help`, `--version`, and `--trace` flags
-- logging with `mk.debug`, `mk.info`, `mk.error` and `mk.fatal` for consistent output
+- logging with `mk.Debug`, `mk.Info`, `mk.Error` and `mk.Fatal` for consistent output
 
 ## Getting Started
 
 ### Installation
 
-Copy `mk.bash` to a directory of your choice, such as `~/.local/libexec`.
+Copy `mk.bash` to `~/.local/lib/mk.bash`.
 
 ### Creating a Command Script
 
 1.  Create a script file in your project directory and `chmod +x` it.  Name it what you
     like.  We'll use `mk` for our examples.
 
-3.  Define `$mkUsage` for the usage help message and `$mkProg` for program identity (usually
-    basename $0, see example).  `$mkVersion` is optional and, when set, is reported every time
-    the program is run.  They are all global variables prefixed with `mk` so as to namespace
-    the variables used with `mk.bash`.
+2.  Define `Prog`, `Usage_` and optionally `Version` as global variables.  Use `mk.SetProg`,
+    `mk.SetUsage` and `mk.SetVersion` to register them with the library.
 
-4.  Implement subcommands as Bash functions, like `cmd.build()` or `cmd.clean()`.
+3.  Implement subcommands as Bash functions, like `cmd.build()` or `cmd.clean()`.
 
-5.  Ensure the boilerplate is at the end of the script, which sources `mk.bash` and calls
-    `mk.bash`'s `mk.main`.  Update the `source` directive with the directory for `mk.bash`.
+4.  Ensure the boilerplate is at the end of the script, which sources `mk.bash` and calls
+    `mk.Main`.  Update the `source` directive with the directory for `mk.bash`.
 
-`mk.main` runs the selected subcommand.  It echoes the program name and version, if defined,
+`mk.Main` runs the selected subcommand.  It echoes the program name and version, if defined,
 and then runs the subcommand's function.  The subcommand's function is simply the
 subcommand name, prefixed with `cmd.`.  This allows you to use subcommand names that
 would otherwise conflict with built-in commands you may need, such as `install`.
@@ -57,13 +54,13 @@ would otherwise conflict with built-in commands you may need, such as `install`.
 ``` bash
 #!/usr/bin/env bash
 
-mkProg=$(basename "$0")   # use the invoked filename as the program name
-mkVersion=0.1
+Prog=$(basename "$0")   # match what the user called
+Version=0.1
 
-read -rd '' mkUsage <<END
+read -rd '' Usage_ <<END
 Usage:
 
-  $mkProg clean
+  $Prog clean
 
   clean -- removes temporary files like build artifacts and cache files.
 END
@@ -71,27 +68,33 @@ END
 ## commands
 
 cmd.clean() {
-  # cue echoes the supplied command, then runs it
-  mk.cue find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
+  # Cue echoes the supplied command, then runs it
+  mk.Cue find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
 }
 
 ## boilerplate
 
-source ~/.local/libexec/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 128; }
+source ~/.local/lib/mk.bash 2>/dev/null || { echo 'fatal: mk.bash not found' >&2; exit 1; }
 
 # enable safe expansion
 IFS=$'\n'
 set -o noglob
 
-return 2>/dev/null      # stop execution if sourced, for debugging
-mk.handleOptions $*     # standard options
-mk.main $*              # showtime
+mk.SetProg $Prog
+mk.SetUsage "$Usage_"
+mk.SetVersion $Version
+
+return 2>/dev/null        # stop if sourced, for interactive debugging
+mk.HandleOptions "$@"    # standard options
+mk.Main "${@:$?}"         # showtime
 ```
 
 ## Using Your Script
 
 ```bash
 $ ./mk clean
+mk version 0.1
+
 find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
 
 $ ./mk --help
@@ -113,36 +116,36 @@ $ ./mk -x clean
 
 ## Utility Functions
 
-### `mk.cue` - Echo and Execute
+### `mk.Cue` - Echo and Execute
 
 Displays commands in yellow while running them, to differentiate from command output.
 
 ```bash
-$ mk.cue echo "Hello, World!"
+$ mk.Cue echo "Hello, World!"
 echo Hello, World! # <- in yellow
 Hello, World!
 ```
 
-### `mk.each` - Apply a Command to Each Line of Input
+### `mk.Each` - Apply a Command to Each Line of Input
 
 Takes an argument for a command to run and iterates over each line of input, running the
 command with the line as arguments:
 
 ```bash
 # symlink shell rc files to visible names
-mk.each 'ln -sf' <<END
+mk.Each 'ln -sf' <<END
   ~/.bashrc ~/bashrc
   ~/.bash_profile ~/bash_profile
 END
 ```
 
-### `mk.keepif` - Filter Input by Condition
+### `mk.KeepIf` - Filter Input by Condition
 
 Filter items based on feeding them to a boolean function.
 
 ```bash
 $ startsWithA() { [[ $1 == a* ]]; }
-$ echo -e "apple\nbanana\ncherry" | mk.keepif startsWithA
+$ echo -e "apple\nbanana\ncherry" | mk.KeepIf startsWithA
 apple
 ```
 
@@ -150,10 +153,10 @@ apple
 
 Output messages on stderr with the log level prepended.
 
-- `mk.debug "message"` (only logs if `$Debug` is defined and is a positive integer)
-- `mk.info "message"`
-- `mk.error "message"`
-- `mk.fatal "message" [exit code]` (exits with error)
+- `mk.Debug "message"` (only logs if debug is enabled via `mk.SetDebug on`)
+- `mk.Info "message"`
+- `mk.Error "message"`
+- `mk.Fatal "message" [exit code]` (exits with error)
 
 ## License
 
