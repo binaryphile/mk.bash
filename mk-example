@@ -6,13 +6,10 @@ Version=0.2
 read -rd '' Usage_ <<END
 Usage:
 
-  $Prog [OPTIONS] [--] COMMAND [ARGS...]
+  $Prog [OPTIONS] [--] git-update DIR [DIR...]
 
-  git-update DIR [DIR...]
-                if the upstream branch has made progress, git-update rebases the current
+  git-update    if the upstream branch has made progress, git-update rebases the current
                 branch on its upstream.
-
-  rebuild       update dotfiles flake input and nixos-rebuild switch
 
   Options:
 
@@ -29,23 +26,6 @@ cmd.git-update() {
     mk.KeepIf isGitRepo |
     mk.Each rebaseIfUpstreamHasProgressed
 }
-
-cmd.rebuild() (
-  mk.Cue nix flake update dotfiles --flake ~/nixos-config
-  mk.Cue sudo nixos-rebuild switch --flake ~/nixos-config
-)
-
-cmd.urma() (  # subshell for cd
-  [[ -e ~/fa-token.txt ]] || mk.Fatal 'missing fontawesome token file: ~/fa-token.txt'
-  mk.Each mk.Cue <<'  END'
-    git clone git@stash.digi.com:idigi/urma-next ~/urma-next
-    cd ~/urma-next/urma-next/scripts
-    git checkout -b local origin/tlilley/local
-  END
-  export FONTAWESOME_PACKAGE_TOKEN=$(<~/fa-token.txt)
-  mk.Cue ./urma install
-
-)
 
 ## helpers
 
