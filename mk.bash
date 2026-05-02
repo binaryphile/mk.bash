@@ -196,17 +196,20 @@ mk.WithGlob() {
 
 # mk.Each applies command to each argument from stdin.
 mk.Each() {
-  local command=$1 arg
+  local command=$1 arg rc
   while read -r arg; do
-    eval "$command $arg"
+    eval "$command $arg"; rc=$?
+    (( rc == 130 )) && return 130
   done
 }
 
 # mk.KeepIf filters lines from stdin using command.
 mk.KeepIf() {
-  local command=$1 arg
+  local command=$1 arg rc
   while read -r arg; do
-    eval "$command $arg" && echo $arg
+    eval "$command $arg"; rc=$?
+    (( rc == 130 )) && return 130
+    (( rc == 0 )) && echo $arg
   done
 }
 
