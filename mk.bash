@@ -31,11 +31,15 @@
 # IFS=$'\n'
 # shopt -o noglob
 #
-# return 2>/dev/null    # stop if sourced, for interactive debugging
-# mk.HandleOptions $*   # standard options, returns 1-based offset
-# mk.Main ${*:$?}       # showtime
+# return 2>/dev/null      # stop if sourced, for interactive debugging
+# mk.HandleOptions "$@"   # standard options, returns 1-based offset
+# mk.Main "${@:$?}"       # showtime
 #
 # Now your script is ready.
+#
+# Use the quoted "$@" / "${@:$?}" forms; under IFS=$'\n' the unquoted $*
+# / ${*:$?} forms split multi-line arguments (e.g. JSON heredocs) at every
+# newline, breaking commands that take a single multi-line payload.
 
 # Naming Policy:
 #
@@ -59,10 +63,15 @@
 NL=$'\n'
 
 # mk.Main runs the provided command.
+#
+# Dispatches to `cmd.<name>` with the remaining args. Uses "${@:2}" (quoted
+# array slice) rather than ${*:2} so multi-line arguments survive the
+# dispatch -- under IFS=$'\n', unquoted $* would split a multi-line arg
+# (e.g. a JSON heredoc) into multiple positional params at every newline.
 mk.Main () {
   local cmd=cmd.$1  # prefix
   [[ -v ProgM && -v VersionM ]] && echo "$ProgM version $VersionM$NL"
-  $cmd ${*:2}
+  $cmd "${@:2}"
 }
 
 Yellow=$'\033[1;33m'
