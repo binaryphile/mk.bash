@@ -10,13 +10,13 @@ Tiny bash library for creating make-like commands with subcommands.
 ```bash
 tesht                     # run tests (uses tesht test runner)
 kcov --include-path mk.bash kcov tesht  # coverage
-./mk badges              # regenerate all badges
+mk badges                # regenerate badges (bin/mk; .envrc puts bin/ on PATH)
 ```
 
 ## Structure
 
 - `mk.bash` — the library (sourced by consumer scripts)
-- `mk` — this project's own mk command (builds badges, runs tests/coverage)
+- `bin/mk` — this project's own mk command (builds badges, runs tests/coverage)
 - `mk-example` — example consumer script
 - `mk_test.bash` — tests (tesht format)
 

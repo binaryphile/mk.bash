@@ -92,12 +92,12 @@ mk.Main "${@:$?}"         # showtime
 ## Using Your Script
 
 ```bash
-$ ./mk clean
+$ mk clean
 mk version 0.1
 
 find . -type f \( -name '*.tmp' -o -name '*.log' -o -name '*.cache' \) -delete
 
-$ ./mk --help
+$ mk --help
 Usage:
 
   mk clean
@@ -110,7 +110,7 @@ Usage:
 Use `-x` or `--trace` for tracing.
 
 ```bash
-$ ./mk -x clean
+$ mk -x clean
 [trace output not shown]
 ```
 
