@@ -162,6 +162,8 @@ mk.Glob() {
 # Call it before enabling strict mode.
 mk.HandleOptions() {
   local -i shifts=0
+  MaxLines=${MaxLines:-100}   # default; consumers can pre-set to override
+  local val
   while [[ ${1:-} == -?* ]]; do
     case $1 in
       -h|--help )     [[ -v UsageM ]] && echo "$UsageM"; exit;;
@@ -169,6 +171,15 @@ mk.HandleOptions() {
       -v|--version )  [[ -v ProgM && -v VersionM ]] && echo "$ProgM version $VersionM"; exit;;
 
       -x|--trace )    set -x;;
+
+      --max-lines )
+        [[ ${2:-} =~ ^(0|[1-9][0-9]*)$ ]] || mk.Fatal "--max-lines requires non-negative integer; got: ${2:-<missing>}" 2
+        MaxLines=$2; shift 2; shifts+=2; continue ;;
+
+      --max-lines=* )
+        val=${1#--max-lines=}
+        [[ -n $val && $val =~ ^(0|[1-9][0-9]*)$ ]] || mk.Fatal "--max-lines requires non-negative integer; got: ${val:-<empty>}" 2
+        MaxLines=$val; shift; shifts+=1; continue ;;
 
       -- )            shift; shifts+=1; break;;
 
@@ -180,6 +191,26 @@ mk.HandleOptions() {
   (( $# > 0 )) || { [[ -v UsageM ]] && echo "$UsageM$NL$NL"; mk.Fatal "at least one argument required." 2; }
 
   return $((shifts + 1))
+}
+
+# mk.CapLines MAX
+#   Read stdin; emit at most MAX lines to stdout; if more were suppressed,
+#   append a summary line:
+#       ... [output truncated after MAX lines; SUPPRESSED more lines suppressed]
+#   MAX=0 means pass-through (no cap). Consumers opt in by piping their
+#   dispatch through mk.CapLines: `mk.Main "${@:$?}" | mk.CapLines "$MaxLines"`.
+mk.CapLines() {
+  local max=$1
+  if (( max == 0 )); then cat; return; fi
+  awk -v max="$max" '
+    NR <= max { print; next }
+    { suppressed++ }
+    END {
+      if (suppressed > 0) {
+        print "... [output truncated after " max " lines; " suppressed " more lines suppressed]"
+      }
+    }
+  '
 }
 
 mk.SetDebug() {
