@@ -13,7 +13,7 @@
           inherit system;
         };
       in {
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShellNoCC {
           buildInputs = with pkgs; [
             bash
             coreutils
