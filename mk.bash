@@ -290,3 +290,25 @@ mk.Fatal() {
 
 mk.Info() { echo "info: $1" >&2; }
 
+## lint
+
+# ShellcheckPluginDirM is the home-manager XDG install path for the
+# shellcheck-convention-plugin (libconvention-checks.so). Env-overridable
+# for non-standard installs / tests.
+ShellcheckPluginDirM=${XDG_DATA_HOME:-$HOME/.local/share}/shellcheck/plugins
+
+# ConventionCodesM is the shellcheck-convention-plugin's warning vocabulary
+# (SC9001-SC9010). Passed to --include so shellcheck considers ONLY these and
+# turns every base SC1xxx/SC2xxx check off (operator preference: convention
+# warnings only). Extend if the plugin's code range grows.
+ConventionCodesM=SC9001,SC9002,SC9003,SC9004,SC9005,SC9006,SC9007,SC9008,SC9009,SC9010
+
+# mk.Shellcheck runs shellcheck over its file arguments reporting ONLY the
+# convention-plugin warnings (base checks off), gcc output format. Returns
+# shellcheck's rc: 0 = no convention findings; non-zero = findings or error.
+# Loads the plugin via an explicit --plugin-dir (XDG auto-discovery can hang
+# on large files).
+mk.Shellcheck() {
+  shellcheck --plugin-dir $ShellcheckPluginDirM --include=$ConventionCodesM -f gcc "$@"
+}
+

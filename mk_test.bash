@@ -355,3 +355,25 @@ test_mk.Map() {
   return $failed
 }
 
+test_mk.Shellcheck() {
+  # boundary-mock shellcheck to capture the argv mk.Shellcheck composes
+  # (blank line before the def keeps SC9007 from reading this as its docstring).
+
+  shellcheck() { local IFS=' '; echo "$*"; }
+
+  ## act
+  local got_
+  got_=$(mk.Shellcheck a.bash b.bash)
+
+  ## assert -- convention-only (--include the SC9xxx vocabulary, base checks off:
+  ## no --exclude / no --severity), plugin loaded, gcc format, files forwarded
+  [[ $got_ == *"--include=SC9001,SC9002,SC9003,SC9004,SC9005,SC9006,SC9007,SC9008,SC9009,SC9010"* ]] || {
+    echo "mk.Shellcheck: convention-only --include missing; got: $got_"
+    return 1
+  }
+  [[ $got_ == *"--plugin-dir "* && $got_ == *"-f gcc a.bash b.bash"* ]] || {
+    echo "mk.Shellcheck: expected --plugin-dir + gcc format + files; got: $got_"
+    return 1
+  }
+}
+
