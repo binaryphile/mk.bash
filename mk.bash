@@ -257,7 +257,12 @@ mk.KeepIf() {
 mk.Map() {
   local varname=$1 expression=$2
   local $varname
-  while read -r $varname; do
+  # IFS=' ' strips leading/trailing spaces from each line, so callers can feed
+  # an indented heredoc without embedding leading whitespace in the value --
+  # same fix as fp.bash's fp.Map (fp.bash commit 5c88f61) and dotfiles
+  # update-env's map() (commit d2f0cd5): without it, a value like "  foo"
+  # fragments into two words the next time it round-trips through eval.
+  while IFS=' ' read -r $varname; do
     eval "echo \"$expression\""
   done
 }
