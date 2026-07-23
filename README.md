@@ -114,6 +114,14 @@ $ mk -x clean
 [trace output not shown]
 ```
 
+**Security warning**: `--trace` enables bash's `set -x` for the remainder
+of script execution, not just mk.bash's own internals — every subsequent
+command your script runs is printed to stderr with arguments fully
+expanded, including any credentials passed as command-line arguments.
+Don't redirect stderr to a persistent log file while tracing, and be
+aware that pasting traced output (e.g. into a bug report or chat) can
+leak secrets that appeared in a traced command's argv.
+
 ## Utility Functions
 
 ### `mk.Cue` - Echo and Execute
