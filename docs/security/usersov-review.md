@@ -30,6 +30,16 @@ docstring and the README's Utility Functions section both now carry an explicit 
 mirroring the existing `--trace` warning's style; no redaction was implemented (a deny-list
 redaction can never be complete, and no known consumer currently passes secrets through `mk.Cue`).
 
+**Remediation update (mk.bash#78879, 2026-08-03)**: MK-S3-VENDORED-COPY-DRIFT addressed with
+`mk check-drift` (`bin/mk`'s own `check-drift` command). Investigation found the risk surface
+narrower than the finding assumed: `~/.local/lib/mk.bash` is a symlink to canonical, so every
+`bin/mk` consumer sources it safely and cannot drift; `era/lib/mk.bash` is the one confirmed real
+vendored copy (96 lines diverged). The command diffs known vendored-copy sites against canonical
+and does a best-effort estate-wide grep for any undeclared site defining `mk.HandleOptions()`.
+Live-verified: flags `era/lib/mk.bash`'s existing drift, reports a symlink site as safe, and flags
+a freshly-diverged test copy. No sync mechanism was built (out of scope, and each vendored copy may
+have intentional local additions) -- this is detection, not automatic reconciliation.
+
 **Scope framing note**: mk.bash is a foundational library with almost no data flows of its own
 (no stores, no network calls, no telemetry, no credential handling — confirmed via full source
 read). The review's substance is therefore concentrated at the boundary between mk.bash and its

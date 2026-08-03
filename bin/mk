@@ -40,9 +40,11 @@ END
 # defining `mk.HandleOptions()`, to surface a new vendored copy before
 # it's formally added to the known-sites list.
 cmd.check-drift() {
-  local -a knownSites=(
-    "$HOME/icarus/era/lib/mk.bash"
-  )
+  # KnownSites is a global (not function-local) so tests can override it
+  # by setting the array before calling cmd.check-drift -- bash's dynamic
+  # scoping makes a caller-set global visible here as long as nothing
+  # inside this function shadows the name with `local`.
+  local -a knownSites=("${KnownSites[@]:-$HOME/icarus/era/lib/mk.bash}")
 
   local rc=0 site
   for site in "${knownSites[@]}"; do
@@ -75,14 +77,18 @@ cmd.check-drift() {
   # site) DEFINING mk.HandleOptions (anchored to line-start so a caller
   # like `mk.HandleOptions $*` or a wrapper name like `test_mk.HandleOptions`
   # doesn't false-positive-match) is a previously-unknown vendored copy.
-  # Scoped to $HOME/projects and $HOME/icarus -- the two roots every known
-  # consumer lives under; not a guarantee of estate-wide completeness (a
-  # clone elsewhere on this machine, or on a different machine, is out of
-  # reach). Paths containing "-wt-" are excluded: this operator's git-
-  # worktree naming convention for per-task isolation, e.g.
-  # era-wt-94822/lib/mk.bash is a worktree VIEW of era/lib/mk.bash, not an
-  # independently-vendored copy -- it will show the same drift the main
-  # checkout already reports above, once merged.
+  # DiscoveryRoots defaults to $HOME/projects and $HOME/icarus -- the two
+  # roots every known consumer lives under; not a guarantee of
+  # estate-wide completeness (a clone elsewhere on this machine, or on a
+  # different machine, is out of reach). Overridable (tests scope it to a
+  # fixture dir instead of scanning the real filesystem). Paths containing
+  # "-wt-" are excluded: this operator's git-worktree naming convention
+  # for per-task isolation, e.g. era-wt-94822/lib/mk.bash is a worktree
+  # VIEW of era/lib/mk.bash, not an independently-vendored copy -- it
+  # will show the same drift the main checkout already reports above,
+  # once merged.
+  local -a discoveryRoots=("${DiscoveryRoots[@]:-}")
+  (( ${#discoveryRoots[@]} == 0 )) && discoveryRoots=("$HOME/projects" "$HOME/icarus")
   local -a discovered=()
   local f=''
   while IFS= read -r f; do
@@ -94,7 +100,7 @@ cmd.check-drift() {
     done
     [[ -n $known ]] && continue
     discovered+=("$f")
-  done < <(grep -rlE '^mk\.HandleOptions\(\)' "$HOME/projects" "$HOME/icarus" 2>/dev/null)
+  done < <(grep -rlE '^mk\.HandleOptions\(\)' "${discoveryRoots[@]}" 2>/dev/null)
 
   if (( ${#discovered[@]} > 0 )); then
     local d
