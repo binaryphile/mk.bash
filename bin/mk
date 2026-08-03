@@ -16,6 +16,8 @@ Usage:
     test -- run tesht and record results
     badges -- run all three and create badges from the results
 
+  check-drift -- diff known vendored copies of mk.bash against canonical
+
   Options (if multiple, must be provided as separate flags):
 
     -h | --help     show this message and exit
@@ -24,6 +26,86 @@ Usage:
 END
 
 ## commands
+
+# cmd.check-drift diffs known vendored copies of mk.bash's own source
+# against this repo's canonical mk.bash (#78879, MK-S3-VENDORED-COPY-DRIFT).
+#
+# A "vendored copy" here means a file that embeds mk.bash's actual
+# function definitions rather than sourcing the canonical file (directly
+# or via the ~/.local/lib/mk.bash symlink) -- consumers that source the
+# symlink can never drift, since they always get canonical content at
+# run time. Known sites are hardcoded below; there is no discovery
+# mechanism for a site nobody has told this list about yet, so this
+# check ALSO does a best-effort estate-wide grep for any OTHER file
+# defining `mk.HandleOptions()`, to surface a new vendored copy before
+# it's formally added to the known-sites list.
+cmd.check-drift() {
+  local -a knownSites=(
+    "$HOME/icarus/era/lib/mk.bash"
+  )
+
+  local rc=0 site
+  for site in "${knownSites[@]}"; do
+    if [[ ! -e $site ]]; then
+      echo "WARN  $site: does not exist (stale entry in the known-sites list?)"
+      rc=1
+      continue
+    fi
+    if [[ -L $site ]]; then
+      local target=$(readlink -f "$site")
+      if [[ $target == $(readlink -f mk.bash) ]]; then
+        echo "OK    $site: symlink to canonical (cannot drift)"
+      else
+        echo "WARN  $site: symlink, but NOT to canonical ($target)"
+        rc=1
+      fi
+      continue
+    fi
+    local diffLines_
+    diffLines_=$(diff "$site" mk.bash | wc -l)
+    if (( diffLines_ == 0 )); then
+      echo "OK    $site: identical to canonical"
+    else
+      echo "DRIFT $site: $diffLines_ diff lines vs canonical -- diff \"$site\" mk.bash"
+      rc=1
+    fi
+  done
+
+  # Best-effort discovery pass: any OTHER file (not canonical, not a known
+  # site) DEFINING mk.HandleOptions (anchored to line-start so a caller
+  # like `mk.HandleOptions $*` or a wrapper name like `test_mk.HandleOptions`
+  # doesn't false-positive-match) is a previously-unknown vendored copy.
+  # Scoped to $HOME/projects and $HOME/icarus -- the two roots every known
+  # consumer lives under; not a guarantee of estate-wide completeness (a
+  # clone elsewhere on this machine, or on a different machine, is out of
+  # reach). Paths containing "-wt-" are excluded: this operator's git-
+  # worktree naming convention for per-task isolation, e.g.
+  # era-wt-94822/lib/mk.bash is a worktree VIEW of era/lib/mk.bash, not an
+  # independently-vendored copy -- it will show the same drift the main
+  # checkout already reports above, once merged.
+  local -a discovered=()
+  local f=''
+  while IFS= read -r f; do
+    [[ $f == "$PWD/mk.bash" ]] && continue
+    [[ $f == *-wt-* ]] && continue
+    local known=
+    for site in "${knownSites[@]}"; do
+      [[ $f == $(readlink -f "$site") ]] && known=1
+    done
+    [[ -n $known ]] && continue
+    discovered+=("$f")
+  done < <(grep -rlE '^mk\.HandleOptions\(\)' "$HOME/projects" "$HOME/icarus" 2>/dev/null)
+
+  if (( ${#discovered[@]} > 0 )); then
+    local d
+    for d in "${discovered[@]}"; do
+      echo "NEW   $d: defines mk.HandleOptions() but is not in the known-sites list -- add it above and re-run"
+    done
+    rc=1
+  fi
+
+  return $rc
+}
 
 cmd.badges() {
   cmd.cover
