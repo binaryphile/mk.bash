@@ -247,6 +247,7 @@ mk.Each() {
     eval "$command $arg"; rc=$?
     (( rc == 130 )) && return 130
   done
+  return 0
 }
 
 # mk.KeepIf filters lines from stdin using command.
@@ -257,6 +258,7 @@ mk.KeepIf() {
     (( rc == 130 )) && return 130
     (( rc == 0 )) && echo $arg
   done
+  return 0
 }
 
 # mk.Map evaluates expression for its output with $varname set to each line from stdin.

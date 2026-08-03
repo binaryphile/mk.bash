@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+IFS=$'\n'
+set -o noglob
+
 NL=$'\n'
 
 source ./mk.bash
@@ -8,13 +11,13 @@ test_mk.Cue() {
   ## act
 
   # run the command and capture the output and result code
-  got=$(mk.Cue echo "hello, world!" 2>&1) && rc=$? || rc=$?
+  got_=$(mk.Cue echo "hello, world!" 2>&1) && rc=$? || rc=$?
 
   ## assert
 
   # assert no error
   (( rc == 0 )) || {
-    echo "mk.Cue: error = $rc, want: 0$NL$got"
+    echo "mk.Cue: error = $rc, want: 0$NL$got_"
     return 1
   }
 
@@ -26,9 +29,9 @@ test_mk.Cue() {
   want="${yellow}echo hello\,\ world\!$reset
 hello, world!"
 
-  [[ $got == "$want" ]] || {
-    echo "${NL}mk.Cue: got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
-    echo "use this line to update want to match this output:${NL}want=${got@Q}"
+  [[ $got_ == "$want" ]] || {
+    echo "${NL}mk.Cue: got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+    echo "use this line to update want to match this output:${NL}want=${got_@Q}"
     return 1
   }
 }
@@ -39,8 +42,12 @@ test_mk.HandleOptions() {
   local -A case1=(
     [name]='accept a no-option argument'
 
+    # mk.HandleOptions returns a shift-offset (shifts consumed + 1), never a
+    # plain boolean -- zero options consumed still returns 1, the offset
+    # `main "${@:$?}"` needs to skip past zero args. See bash-style-guide
+    # §pipefail's "return-offset option parsers" note.
     [args]='one'
-    [wantrc]=0
+    [wantrc]=1
   )
 
   local -A case2=(
@@ -59,7 +66,7 @@ test_mk.HandleOptions() {
     [want]='sample usage message'
   )
 
-  local -A case3=(
+  local -A case3b=(
     [name]='output help with the long option'
 
     [args]='--help'
@@ -88,9 +95,10 @@ test_mk.HandleOptions() {
   local -A case6=(
     [name]='enable tracing with the short option'
 
+    # 1 option shifted (-x) -> shift-offset 2, not the option count itself.
     [args]='-x one'
     [want]='+++ shift'
-    [wantrc]=1
+    [wantrc]=2
   )
 
   local -A case7=(
@@ -98,14 +106,15 @@ test_mk.HandleOptions() {
 
     [args]='--trace one'
     [want]='+++ shift'
-    [wantrc]=1
+    [wantrc]=2
   )
 
   local -A case8=(
     [name]='stop taking options after --'
 
+    # 1 shift for `--` itself -> shift-offset 2.
     [args]='-- --one'
-    [wantrc]=1
+    [wantrc]=2
   )
 
   local -A case9=(
@@ -136,23 +145,23 @@ test_mk.HandleOptions() {
     ## act
 
     # run the command and capture the output and result code
-    local got rc
-    got=$(eval "mk.HandleOptions $args" 2>&1) && rc=$? || rc=$?
+    local got_ rc
+    got_=$(eval "mk.HandleOptions $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
 
     # assert that we got the wanted result
     [[ -v wantrc ]] || local wantrc=0
     (( rc == wantrc )) || {
-      echo "${NL}mk.HandleOptions/$name: rc = $rc, want: $wantrc$NL$got"
+      echo "${NL}mk.HandleOptions/$name: rc = $rc, want: $wantrc$NL$got_"
       return 1
     }
 
     [[ -v want ]] && {
       # assert that we got the wanted output
-      [[ $got == *"$want"* ]] || {
-        echo "${NL}mk.HandleOptions/$name got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
-        echo "use this line to update want to match this output:${NL}want=${got@Q}"
+      [[ $got_ == *"$want"* ]] || {
+        echo "${NL}mk.HandleOptions/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+        echo "use this line to update want to match this output:${NL}want=${got_@Q}"
         return 1
       }
     }
@@ -160,15 +169,7 @@ test_mk.HandleOptions() {
     return 0
   }
 
-  local failed=0 casename
-  for casename in ${!case@}; do
-    tesht.Run test_mk.HandleOptions $casename || {
-      (( $? == 128 )) && return 128   # fatal
-      failed=1
-    }
-  done
-
-  return $failed
+  tesht.Run ${!case@}
 }
 
 test_mk.Each() {
@@ -197,36 +198,28 @@ test_mk.Each() {
     eval "$(tesht.Inherit $casename)"
 
     ## act
-    local got rc
-    got=$(echo "$fields" | eval "mk.Each $args" 2>&1) && rc=$? || rc=$?
+    local got_ rc
+    got_=$(echo "$fields" | eval "mk.Each $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
 
     # assert no error
     (( rc == 0 )) || {
-      echo "${NL}mk.Each/$name: error = $rc, want: 0$NL$got"
+      echo "${NL}mk.Each/$name: error = $rc, want: 0$NL$got_"
       return 1
     }
 
     # assert that we got the wanted output
-    [[ $got == "$want" ]] || {
-      echo "${NL}mk.Each/$name got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got@Q}"
+    [[ $got_ == "$want" ]] || {
+      echo "${NL}mk.Each/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
       return 1
     }
 
     return 0
   }
 
-  local failed=0 casename
-  for casename in ${!case@}; do
-    tesht.Run test_mk.Each $casename || {
-      (( $? == 128 )) && return 128   # fatal
-      failed=1
-    }
-  done
-
-  return $failed
+  tesht.Run ${!case@}
 }
 
 test_mk.KeepIf() {
@@ -258,6 +251,19 @@ test_mk.KeepIf() {
     [want]=''
   )
 
+  local -A case4=(
+    [name]='succeeds even when the LAST line fails the predicate'
+
+    # Regression case: mk.KeepIf's while-loop body used to leave a false
+    # arithmetic test as its final per-iteration statement whenever the
+    # predicate failed, which becomes the function's own return code if
+    # that's the last line processed. An explicit `return 0` after the
+    # loop fixes this; this case fails loudly (rc != 0) if it regresses.
+    [args]='isNonEmpty'
+    [fields]=$'one\n'
+    [want]='one'
+  )
+
   subtest() {
     local casename=$1
 
@@ -265,33 +271,25 @@ test_mk.KeepIf() {
     eval "$(tesht.Inherit $casename)"
 
     ## act
-    local got rc
-    got=$(echo "$fields" | eval "mk.KeepIf $args" 2>&1) && rc=$? || rc=$?
+    local got_ rc
+    got_=$(echo "$fields" | eval "mk.KeepIf $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.KeepIf/$name: error = $rc, want: 0$NL$got"
+      echo "${NL}mk.KeepIf/$name: error = $rc, want: 0$NL$got_"
       return 1
     }
 
-    [[ $got == "$want" ]] || {
-      echo "${NL}mk.KeepIf/$name got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got@Q}"
+    [[ $got_ == "$want" ]] || {
+      echo "${NL}mk.KeepIf/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
       return 1
     }
 
     return 0
   }
 
-  local failed=0 casename
-  for casename in ${!case@}; do
-    tesht.Run test_mk.KeepIf $casename || {
-      (( $? == 128 )) && return 128   # fatal
-      failed=1
-    }
-  done
-
-  return $failed
+  tesht.Run ${!case@}
 }
 
 test_mk.Map() {
@@ -326,33 +324,25 @@ test_mk.Map() {
     eval "$(tesht.Inherit $casename)"
 
     ## act
-    local got rc
-    got=$(echo "$fields" | eval "mk.Map $args" 2>&1) && rc=$? || rc=$?
+    local got_ rc
+    got_=$(echo "$fields" | eval "mk.Map $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.Map/$name: error = $rc, want: 0$NL$got"
+      echo "${NL}mk.Map/$name: error = $rc, want: 0$NL$got_"
       return 1
     }
 
-    [[ $got == "$want" ]] || {
-      echo "${NL}mk.Map/$name got doesn't match want:$NL$(tesht.Diff "$got" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got@Q}"
+    [[ $got_ == "$want" ]] || {
+      echo "${NL}mk.Map/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
       return 1
     }
 
     return 0
   }
 
-  local failed=0 casename
-  for casename in ${!case@}; do
-    tesht.Run test_mk.Map $casename || {
-      (( $? == 128 )) && return 128   # fatal
-      failed=1
-    }
-  done
-
-  return $failed
+  tesht.Run ${!case@}
 }
 
 test_mk.Shellcheck() {
@@ -368,11 +358,11 @@ test_mk.Shellcheck() {
   ## assert -- convention-only (--include the SC9xxx vocabulary, base checks off:
   ## no --exclude / no --severity), plugin loaded, gcc format, files forwarded
   [[ $got_ == *"--include=SC9001,SC9002,SC9003,SC9004,SC9005,SC9006,SC9007,SC9008,SC9009,SC9010"* ]] || {
-    echo "mk.Shellcheck: convention-only --include missing; got: $got_"
+    echo "mk.Shellcheck: convention-only --include missing; got_: $got_"
     return 1
   }
   [[ $got_ == *"--plugin-dir "* && $got_ == *"-f gcc a.bash b.bash"* ]] || {
-    echo "mk.Shellcheck: expected --plugin-dir + gcc format + files; got: $got_"
+    echo "mk.Shellcheck: expected --plugin-dir + gcc format + files; got_: $got_"
     return 1
   }
 }
