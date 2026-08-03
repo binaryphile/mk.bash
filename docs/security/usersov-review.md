@@ -11,6 +11,15 @@ an incomplete consumer/copy inventory; R2 GAP REMAINS (Grade B+ / Posture A- / R
 4 narrow closure items; R3 APPROVE (Grade A-). The R1 round is the reason this review carries a
 4th threat record (MK-S4) that the initial draft missed entirely — see Block 4.
 
+**Remediation update (mk.bash#78891, 2026-08-03)**: MK-S4-CURL-EVAL-FALLBACK is now REMEDIATED. All
+5 identified consumers (task.bash, fluentfp, tandem-protocol, tmux-claude, cascadia) had the
+curl|eval fallback removed and replaced with the hard-fatal pattern already used by
+finances/bin/mk, dotfiles/mk, era/bin/evtctl, and era/bin/era. Verified: `grep -rn "curl.*mk\.bash"`
+across all 5 consumer `bin/mk` scripts returns zero hits; each script still sources correctly when
+the local library is present, and correctly hard-fails (no network fetch attempted) when it is not.
+The "Accepted risk" bullet and Block 7 grade narrative below describe the PRE-remediation state and
+are left as the historical record of what was reviewed and graded; this note is the forward pointer.
+
 **Scope framing note**: mk.bash is a foundational library with almost no data flows of its own
 (no stores, no network calls, no telemetry, no credential handling — confirmed via full source
 read). The review's substance is therefore concentrated at the boundary between mk.bash and its
