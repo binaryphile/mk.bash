@@ -391,11 +391,14 @@ review's own out-of-scope discipline; protocol/gate integration — icarus #7031
   (partial-consumer audit); the risk is prospective, not realized. Revisit trigger: any future
   consumer usage that does pass secret-shaped arguments through either surface.
 
-- Accepted risk (until MK-S4 remediation lands): 5 consumers retain a network-fetch fallback to
-  a mutable, unverified branch ref. Owner: operator. Rationale: does not fire under this
-  machine's current healthy-symlink state; genuinely residual for degraded/fresh environments.
-  Revisit trigger: any dispatched, sandboxed, or fresh-provisioned context where `~/.local` is
-  not guaranteed present.
+- Accepted risk (until MK-S4 remediation lands) — **REMEDIATED 2026-08-03, see the
+  Remediation update note above this document's scope framing (mk.bash#78891)**: 5 consumers
+  retained a network-fetch fallback to a mutable, unverified branch ref. Owner: operator.
+  Rationale: did not fire under this machine's then-current healthy-symlink state; was
+  genuinely residual for degraded/fresh environments. Revisit trigger (now closed): any
+  dispatched, sandboxed, or fresh-provisioned context where `~/.local` is not guaranteed
+  present. Residual, NOT covered by the remediation: active feature-branch worktrees created
+  before the fix landed on main still carry the pre-fix pattern until they rebase/merge.
 
 ## Block 7 — Grade triplet (self-assessment)
 
