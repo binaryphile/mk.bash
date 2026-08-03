@@ -12,13 +12,23 @@ an incomplete consumer/copy inventory; R2 GAP REMAINS (Grade B+ / Posture A- / R
 4th threat record (MK-S4) that the initial draft missed entirely — see Block 4.
 
 **Remediation update (mk.bash#78891, 2026-08-03)**: MK-S4-CURL-EVAL-FALLBACK is now REMEDIATED. All
-5 identified consumers (task.bash, fluentfp, tandem-protocol, tmux-claude, cascadia) had the
-curl|eval fallback removed and replaced with the hard-fatal pattern already used by
-finances/bin/mk, dotfiles/mk, era/bin/evtctl, and era/bin/era. Verified: `grep -rn "curl.*mk\.bash"`
-across all 5 consumer `bin/mk` scripts returns zero hits; each script still sources correctly when
-the local library is present, and correctly hard-fails (no network fetch attempted) when it is not.
-The "Accepted risk" bullet and Block 7 grade narrative below describe the PRE-remediation state and
-are left as the historical record of what was reviewed and graded; this note is the forward pointer.
+5 originally-identified consumers (task.bash, fluentfp, tandem-protocol, tmux-claude, cascadia's
+`bin/mk`) plus a 6th site found via an estate-wide search during IMPL grading
+(`cascadia/bin/orchestrator`, not a `bin/mk` file) had the curl|eval fallback removed and replaced
+with the hard-fatal pattern already used by finances/bin/mk, dotfiles/mk, era/bin/evtctl, and
+era/bin/era. 2 additional live instances in active feature-branch worktrees were also fixed
+directly rather than deferred. Verified estate-wide: `grep -rln` for the raw GitHub URL across
+`~/projects`, `~/icarus`, `~/dotfiles`, `~/digi` returns zero hits after remediation; each fixed
+script still sources correctly when the local library is present, and correctly hard-fails (no
+network fetch attempted) when it is absent OR present-but-corrupted. The "Accepted risk" bullet
+below is annotated inline; the Block 7 grade narrative describes the PRE-remediation state and is
+left as the historical record of what was reviewed and graded.
+
+**Remediation update (mk.bash#78877, 2026-08-03)**: MK-S1-CUE-ARGV-DISCLOSURE disposition recorded
+as a documented warning (the finding's own accepted alternative to a redaction pass). `mk.Cue`'s
+docstring and the README's Utility Functions section both now carry an explicit security warning
+mirroring the existing `--trace` warning's style; no redaction was implemented (a deny-list
+redaction can never be complete, and no known consumer currently passes secrets through `mk.Cue`).
 
 **Scope framing note**: mk.bash is a foundational library with almost no data flows of its own
 (no stores, no network calls, no telemetry, no credential handling — confirmed via full source
