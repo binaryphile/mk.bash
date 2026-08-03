@@ -78,6 +78,12 @@ Yellow=$'\033[1;33m'
 Reset=$'\033[0m'
 
 # mk.Cue runs its arguments as a command after echoing them to stdout in yellow.
+#
+# Security warning: the echoed line is NOT redacted. Any credential-shaped
+# argument (a token, password, or API key passed on the command line) is
+# printed to stdout in cleartext, exactly as given, before the command
+# runs. Don't pass secrets to mk.Cue via argv; use an environment variable
+# or a file the wrapped command reads directly instead.
 mk.Cue() {
   local output
   printf -v output '%q ' "$@"

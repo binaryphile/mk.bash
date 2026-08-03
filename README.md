@@ -134,6 +134,12 @@ echo Hello, World! # <- in yellow
 Hello, World!
 ```
 
+**Security warning**: the echoed line is not redacted — any credential-shaped argument
+(a token, password, or API key passed on the command line) is printed to stdout in
+cleartext, exactly as given, before the command runs. Don't pass secrets to `mk.Cue`
+via argv; use an environment variable or a file the wrapped command reads directly
+instead.
+
 ### `mk.Each` - Apply a Command to Each Line of Input
 
 Takes an argument for a command to run and iterates over each line of input, running the
