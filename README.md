@@ -85,9 +85,38 @@ mk.SetUsage "$Usage_"
 mk.SetVersion $Version
 
 return 2>/dev/null        # stop if sourced, for interactive debugging
-mk.HandleOptions "$@"    # standard options
-mk.Main "${@:$?}"         # showtime
+
+set -euo pipefail         # strict mode -- BELOW the guard, see note
+
+mk.HandleOptions "$@" && Offset=$? || Offset=$?   # standard options; returns arg offset
+mk.Main "${@:$Offset}"                            # showtime
 ```
+
+### Strict mode in the boilerplate
+
+Two placement rules, both load-bearing. Getting either wrong produces a
+script that fails silently rather than loudly.
+
+**`set -e` goes BELOW the sourcing guard.** A top-level `return` fails when the
+script is executed rather than sourced. With `-e` already active, that failure
+aborts *at the guard line* — dispatch never runs and every invocation becomes a
+silent no-op. The guard's own `2>/dev/null` even hides the "can only `return`
+from a function" error, so nothing appears on stderr to explain it. `IFS` and
+`set -o noglob` stay above the guard so a sourced function still gets the
+word-splitting and globbing discipline it was written for.
+
+**`mk.HandleOptions` needs the `&&`/`||` capture.** It returns a 1-based arg
+*offset* as its exit status, not a success/failure code, so `-e` reads an
+ordinary return as failure and aborts before dispatch. The capture makes the
+compound always succeed while preserving `$?`.
+
+`! mk.HandleOptions "$@"` also suppresses `-e`, but **inverts** the status and
+so collapses every offset to 0. With offset 3 and args `a b c d`, the `!` form
+yields `${*:0}` — `"bash a b c d"`, including `$0` — where the capture yields
+`${@:3}`, `"c d"`.
+
+Scripts predating this boilerplate ran with no strict mode at all and still
+work; adopting it is a straight improvement, not a migration.
 
 ## Using Your Script
 

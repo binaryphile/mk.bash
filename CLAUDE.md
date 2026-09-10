@@ -28,4 +28,11 @@ mk badges                # regenerate badges (bin/mk; .envrc puts bin/ on PATH)
 - Private functions prefixed `mk.` with lowercase first letter (e.g. `mk.setNoglob`)
 - Subcommands defined as `cmd.NAME` functions by consumers
 - Library installed to `~/.local/lib/mk.bash`
-- Strict mode: `IFS=$'\n'`, `set -o noglob`
+- Strict mode: `IFS=$'\n'` and `set -o noglob` ABOVE the sourcing guard;
+  `set -euo pipefail` BELOW it. `-e` above the guard aborts at the guard's own
+  top-level `return` on the executed path, silently no-opping every invocation.
+- `mk.HandleOptions` returns a 1-based arg OFFSET as its exit status, so
+  consumers capture it as `mk.HandleOptions "$@" && Offset=$? || Offset=$?`
+  followed by `mk.Main "${@:$Offset}"`. `!` also suppresses `-e` but inverts
+  the status, collapsing every offset to 0. See README "Strict mode in the
+  boilerplate".

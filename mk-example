@@ -69,5 +69,17 @@ mk.SetUsage "$Usage_"
 mk.SetVersion $Version
 
 return 2>/dev/null    # stop if sourced, for interactive debugging
-mk.HandleOptions "$@" # standard options
-mk.Main "${@:$?}"      # showtime
+
+# Strict mode goes BELOW the guard: above it, -e aborts at the guard's own
+# top-level `return` on the executed path, so dispatch never runs and every
+# invocation is a silent no-op. IFS/noglob stay above so a sourced function
+# keeps the discipline it was written for. See README "Strict mode in the
+# boilerplate".
+set -euo pipefail
+
+# mk.HandleOptions returns a 1-based arg OFFSET as its exit status, not a
+# success/failure code -- the && / || capture keeps -e from reading an ordinary
+# return as failure, while preserving $?. `! mk.HandleOptions "$@"` also
+# suppresses -e but INVERTS the status, collapsing every offset to 0.
+mk.HandleOptions "$@" && Offset=$? || Offset=$?   # standard options
+mk.Main "${@:$Offset}"                            # showtime
