@@ -36,6 +36,22 @@ hello, world!"
   }
 }
 
+test_mk.Main_unknownCommand() {
+  ## arrange
+
+  # cmd.known registers one real subcommand, so the dispatcher's miss is not vacuous.
+  cmd.known() { :; }
+
+  ## act
+  local got_
+  local -i rc
+  got_=$(mk.Main bogus 2>&1) && rc=$? || rc=$?
+
+  ## assert
+  tesht.AssertRC $rc 1
+  tesht.AssertGot "$got_" 'fatal: unknown command: bogus'
+}
+
 test_mk.HandleOptions() {
   # test case parameters
 

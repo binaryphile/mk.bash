@@ -71,6 +71,7 @@ NL=$'\n'
 mk.Main () {
   local cmd=cmd.$1  # prefix
   [[ -v ProgM && -v VersionM ]] && echo "$ProgM version $VersionM$NL"
+  declare -F $cmd >/dev/null || mk.Fatal "unknown command: $1" 1
   $cmd "${@:2}"
 }
 

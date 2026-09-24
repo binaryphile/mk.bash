@@ -48,6 +48,7 @@ Copy `mk.bash` to `~/.local/lib/mk.bash`.
 and then runs the subcommand's function.  The subcommand's function is simply the
 subcommand name, prefixed with `cmd.`.  This allows you to use subcommand names that
 would otherwise conflict with built-in commands you may need, such as `install`.
+A name with no matching function exits 1 with `fatal: unknown command: NAME`.
 
 ### Example
 
