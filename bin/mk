@@ -63,12 +63,12 @@ cmd.check-drift() {
       fi
       continue
     fi
-    local diffLines_
-    diffLines_=$(diff "$site" mk.bash | wc -l)
-    if (( diffLines_ == 0 )); then
+    local -i diffLineCount
+    diffLineCount=$(diff "$site" mk.bash | wc -l)
+    if (( diffLineCount == 0 )); then
       echo "OK    $site: identical to canonical"
     else
-      echo "DRIFT $site: $diffLines_ diff lines vs canonical -- diff \"$site\" mk.bash"
+      echo "DRIFT $site: $diffLineCount diff lines vs canonical -- diff \"$site\" mk.bash"
       rc=1
     fi
   done
