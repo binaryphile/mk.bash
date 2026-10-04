@@ -200,7 +200,10 @@ Output messages on stderr with the log level prepended.
 - `mk.Debug "message"` (only logs if debug is enabled via `mk.SetDebug on`)
 - `mk.Info "message"`
 - `mk.Error "message"`
-- `mk.Fatal "message" [exit code]` (exits with error)
+- `mk.Fatal "message" [exit code]` (exits with `exit code`, default `$?`;
+  never exits 0: a code that is not a non-negative decimal integer, or is
+  0 mod 256, becomes 1, so `cmd || mk.Fatal "..."` after a successful command
+  still fails)
 
 ## License
 
