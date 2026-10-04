@@ -383,3 +383,43 @@ test_mk.Shellcheck() {
   }
 }
 
+
+# test_mk.Fatal checks mk.Fatal's observable contract: the message goes to
+# stderr with a bare "fatal: " prefix, nothing goes to stdout, and the exit
+# code is the given rc (or $?) unless that would not stop the script with a
+# failure, in which case it is 1.
+test_mk.Fatal() {
+  local -A case1=([name]='explicit rc'             [prior]=0 [rc_]=3     [wantRC]=3)
+  local -A case2=([name]='default from $?'         [prior]=7 [rc_]=''    [wantRC]=7)
+  local -A case3=([name]='zero becomes 1'          [prior]=0 [rc_]=0     [wantRC]=1)
+  local -A case4=([name]='$? of 0 becomes 1'       [prior]=0 [rc_]=''    [wantRC]=1)
+  local -A case5=([name]='256 becomes 1'           [prior]=0 [rc_]=256   [wantRC]=1)
+  local -A case6=([name]='leading-zero 256 is 1'   [prior]=0 [rc_]=0256  [wantRC]=1)
+  local -A case7=([name]='negative becomes 1'      [prior]=0 [rc_]=-1    [wantRC]=1)
+  local -A case8=([name]='non-numeric becomes 1'   [prior]=0 [rc_]=abc   [wantRC]=1)
+  local -A case9=([name]='leading zero is decimal' [prior]=0 [rc_]=08    [wantRC]=8)
+
+  subtest() {
+    local casename=$1
+    eval "$(tesht.Inherit $casename)"
+
+    ## arrange
+    local dir
+    tesht.MktempDir dir || return 128
+
+    ## act
+    local -i rc
+    if [[ -n $rc_ ]]; then
+      ( (exit $prior); mk.Fatal 'boom' "$rc_" ) >$dir/out 2>$dir/err && rc=$? || rc=$?
+    else
+      ( (exit $prior); mk.Fatal 'boom' ) >$dir/out 2>$dir/err && rc=$? || rc=$?
+    fi
+
+    ## assert
+    tesht.AssertRC $rc $wantRC
+    tesht.AssertGot "$(<$dir/out)" ''
+    tesht.AssertGot "$(<$dir/err)" 'fatal: boom'
+  }
+
+  tesht.Run ${!case@}
+}

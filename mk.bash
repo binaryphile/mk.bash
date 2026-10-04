@@ -295,11 +295,16 @@ mk.Debug() { (( DebugM )) && echo "debug: $1" >&2; }
 # Works with values containing newline.
 mk.Error() { echo "error: $1" >&2; }
 
-# mk.Fatal logs an error message on stderr and exits with result code rc.
+# mk.Fatal writes "fatal: `msg`" to stderr and exits with `rc` (default $?).
+#
+# An `rc` that is not a non-negative decimal integer, or is 0 mod 256, exits 1
+# instead, so a call after a successful command still stops the script with a
+# failure. 10# reads a leading-zero rc as decimal, the way exit does.
 mk.Fatal() {
   local msg=$1 rc=${2:-$?}
   echo "fatal: $msg" >&2
-  exit $rc
+  [[ $rc =~ ^[0-9]+$ ]] && (( 10#$rc % 256 )) || rc=1
+  exit "$rc"
 }
 
 mk.Info() { echo "info: $1" >&2; }
