@@ -17,7 +17,7 @@ test_mk.Cue() {
 
   # assert no error
   (( rc == 0 )) || {
-    echo "mk.Cue: error = $rc, wantLines: 0$NL$got_"
+    echo "mk.Cue: error = $rc, want 0$NL$got_"
     return 1
   }
 
@@ -169,7 +169,7 @@ test_mk.HandleOptions() {
     # assert that we got the wanted result
     [[ -v wantrc ]] || local wantrc=0
     (( rc == wantrc )) || {
-      echo "${NL}mk.HandleOptions/$name: rc = $rc, wantLines: $wantrc$NL$got_"
+      echo "${NL}mk.HandleOptions/$name: rc = $rc, want $wantrc$NL$got_"
       return 1
     }
 
@@ -221,7 +221,7 @@ test_mk.Each() {
 
     # assert no error
     (( rc == 0 )) || {
-      echo "${NL}mk.Each/$name: error = $rc, wantLines: 0$NL$got_"
+      echo "${NL}mk.Each/$name: error = $rc, want 0$NL$got_"
       return 1
     }
 
@@ -292,7 +292,7 @@ test_mk.KeepIf() {
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.KeepIf/$name: error = $rc, wantLines: 0$NL$got_"
+      echo "${NL}mk.KeepIf/$name: error = $rc, want 0$NL$got_"
       return 1
     }
 
@@ -345,7 +345,7 @@ test_mk.Map() {
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.Map/$name: error = $rc, wantLines: 0$NL$got_"
+      echo "${NL}mk.Map/$name: error = $rc, want 0$NL$got_"
       return 1
     }
 
@@ -398,6 +398,7 @@ test_mk.Fatal() {
   local -A case7=([name]='negative becomes 1'      [prior]=0 [rc_]=-1    [wantRC]=1)
   local -A case8=([name]='non-numeric becomes 1'   [prior]=0 [rc_]=abc   [wantRC]=1)
   local -A case9=([name]='leading zero is decimal' [prior]=0 [rc_]=08    [wantRC]=8)
+  local -A case10=([name]='512 becomes 1'         [prior]=0 [rc_]=512   [wantRC]=1)
 
   subtest() {
     local casename=$1
