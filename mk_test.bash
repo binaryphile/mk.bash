@@ -70,7 +70,7 @@ test_mk.HandleOptions() {
     [name]='require at least one argument'
 
     [args]=''
-    [want]='at least one argument required'
+    [wantLines]='at least one argument required'
     [wantrc]=2
   )
 
@@ -78,16 +78,16 @@ test_mk.HandleOptions() {
     [name]='output help with the short option'
 
     [args]='-h'
-    [usage]='sample usage message'
-    [want]='sample usage message'
+    [usageLines]='sample usage message'
+    [wantLines]='sample usage message'
   )
 
   local -A case3b=(
     [name]='output help with the long option'
 
     [args]='--help'
-    [usage]='sample usage message'
-    [want]='sample usage message'
+    [usageLines]='sample usage message'
+    [wantLines]='sample usage message'
   )
 
   local -A case4=(
@@ -96,7 +96,7 @@ test_mk.HandleOptions() {
     [args]='-v'
     [prog]='myprog'
     [version]='0.1'
-    [want]='myprog version 0.1'
+    [wantLines]='myprog version 0.1'
   )
 
   local -A case5=(
@@ -105,7 +105,7 @@ test_mk.HandleOptions() {
     [args]='--version'
     [prog]='myprog'
     [version]='0.1'
-    [want]='myprog version 0.1'
+    [wantLines]='myprog version 0.1'
   )
 
   local -A case6=(
@@ -113,7 +113,7 @@ test_mk.HandleOptions() {
 
     # 1 option shifted (-x) -> shift-offset 2, not the option count itself.
     [args]='-x one'
-    [want]='+++ shift'
+    [wantLines]='+++ shift'
     [wantrc]=2
   )
 
@@ -121,7 +121,7 @@ test_mk.HandleOptions() {
     [name]='enable tracing with the long option'
 
     [args]='--trace one'
-    [want]='+++ shift'
+    [wantLines]='+++ shift'
     [wantrc]=2
   )
 
@@ -137,7 +137,7 @@ test_mk.HandleOptions() {
     [name]='exit if there is an unknown option'
 
     [args]='-b'
-    [want]='unknown option: -b'
+    [wantLines]='unknown option: -b'
     [wantrc]=2
   )
 
@@ -151,11 +151,11 @@ test_mk.HandleOptions() {
     ## arrange
 
     # create variables from the keys/values of the test case map
-    unset -v args prog usage version want wantrc    # unset optional fields
+    unset -v args prog usageLines version wantLines wantrc    # unset optional fields
     eval "$(tesht.Inherit $casename)"
 
     [[ -v prog    ]] && mk.SetProg $prog
-    [[ -v usage   ]] && mk.SetUsage $usage
+    [[ -v usageLines   ]] && mk.SetUsage "$usageLines"
     [[ -v version ]] && mk.SetVersion $version
 
     ## act
@@ -169,15 +169,15 @@ test_mk.HandleOptions() {
     # assert that we got the wanted result
     [[ -v wantrc ]] || local wantrc=0
     (( rc == wantrc )) || {
-      echo "${NL}mk.HandleOptions/$name: rc = $rc, want: $wantrc$NL$got_"
+      echo "${NL}mk.HandleOptions/$name: rc = $rc, wantLines: $wantrc$NL$got_"
       return 1
     }
 
-    [[ -v want ]] && {
+    [[ -v wantLines ]] && {
       # assert that we got the wanted output
-      [[ $got_ == *"$want"* ]] || {
-        echo "${NL}mk.HandleOptions/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" $want)$NL"
-        echo "use this line to update want to match this output:${NL}want=${got_@Q}"
+      [[ $got_ == *"$wantLines"* ]] || {
+        echo "${NL}mk.HandleOptions/$name got_ doesn't match wantLines:$NL$(tesht.Diff "$got_" "$wantLines")$NL"
+        echo "use this line to update wantLines to match this output:${NL}wantLines=${got_@Q}"
         return 1
       }
     }
