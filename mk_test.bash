@@ -11,13 +11,13 @@ test_mk.Cue() {
   ## act
 
   # run the command and capture the output and result code
-  got_=$(mk.Cue echo "hello, world!" 2>&1) && rc=$? || rc=$?
+  got_=$(mk.Cue echo 'hello, world!' 2>&1) && rc=$? || rc=$?
 
   ## assert
 
   # assert no error
   (( rc == 0 )) || {
-    echo "mk.Cue: error = $rc, want: 0$NL$got_"
+    echo "mk.Cue: error = $rc, wantLines: 0$NL$got_"
     return 1
   }
 
@@ -26,12 +26,12 @@ test_mk.Cue() {
   yellow=$'\E[1;33m'
   reset=$'\E[0m'
 
-  want="${yellow}echo hello\,\ world\!$reset
+  wantLines="${yellow}echo hello\,\ world\!$reset
 hello, world!"
 
-  [[ $got_ == "$want" ]] || {
-    echo "${NL}mk.Cue: got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
-    echo "use this line to update want to match this output:${NL}want=${got_@Q}"
+  [[ $got_ == "$wantLines" ]] || {
+    echo "${NL}mk.Cue: got_ doesn't match wantLines:$NL$(tesht.Diff "$got_" "$wantLines")$NL"
+    echo "use this line to update wantLines to match this output:${NL}wantLines=${got_@Q}"
     return 1
   }
 }
@@ -155,7 +155,7 @@ test_mk.HandleOptions() {
     eval "$(tesht.Inherit $casename)"
 
     [[ -v prog    ]] && mk.SetProg $prog
-    [[ -v usage   ]] && mk.SetUsage "$usage"
+    [[ -v usage   ]] && mk.SetUsage $usage
     [[ -v version ]] && mk.SetVersion $version
 
     ## act
@@ -176,7 +176,7 @@ test_mk.HandleOptions() {
     [[ -v want ]] && {
       # assert that we got the wanted output
       [[ $got_ == *"$want"* ]] || {
-        echo "${NL}mk.HandleOptions/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
+        echo "${NL}mk.HandleOptions/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" $want)$NL"
         echo "use this line to update want to match this output:${NL}want=${got_@Q}"
         return 1
       }
@@ -194,16 +194,16 @@ test_mk.Each() {
     [name]='allow redirection'
 
     [args]="'wc -c <<<'"
-    [fields]=$'a\nab\nabc'
-    [want]=$'2\n3\n4'
+    [fieldsLines]=$'a\nab\nabc'
+    [wantLines]=$'2\n3\n4'
   )
 
   local -A case2=(
     [name]='accept empty input gracefully'
 
     [args]='echo'
-    [fields]=''
-    [want]=''
+    [fieldsLines]=''
+    [wantLines]=''
   )
 
   # subtest function to apply test cases
@@ -215,20 +215,20 @@ test_mk.Each() {
 
     ## act
     local got_ rc
-    got_=$(echo "$fields" | eval "mk.Each $args" 2>&1) && rc=$? || rc=$?
+    got_=$(echo "$fieldsLines" | eval "mk.Each $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
 
     # assert no error
     (( rc == 0 )) || {
-      echo "${NL}mk.Each/$name: error = $rc, want: 0$NL$got_"
+      echo "${NL}mk.Each/$name: error = $rc, wantLines: 0$NL$got_"
       return 1
     }
 
     # assert that we got the wanted output
-    [[ $got_ == "$want" ]] || {
-      echo "${NL}mk.Each/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
+    [[ $got_ == "$wantLines" ]] || {
+      echo "${NL}mk.Each/$name got_ doesn't match wantLines:$NL$(tesht.Diff "$got_" "$wantLines")$NL"
+      echo "use this line to update wantLines to match this output:${NL}wantLines=${got_@Q}"
       return 1
     }
 
@@ -245,8 +245,8 @@ test_mk.KeepIf() {
     [name]='keep even numbers'
 
     [args]='isEven'
-    [fields]=$'1\n2\n3\n4'
-    [want]=$'2\n4'
+    [fieldsLines]=$'1\n2\n3\n4'
+    [wantLines]=$'2\n4'
   )
 
   isNonEmpty() { [[ -n ${1:-} ]]; }
@@ -255,16 +255,16 @@ test_mk.KeepIf() {
     [name]='keep non-empty lines'
 
     [args]='isNonEmpty'
-    [fields]=$'\none\n\ntwo'
-    [want]=$'one\ntwo'
+    [fieldsLines]=$'\none\n\ntwo'
+    [wantLines]=$'one\ntwo'
   )
 
   local -A case3=(
     [name]='accept empty input gracefully'
 
     [args]='true'
-    [fields]=''
-    [want]=''
+    [fieldsLines]=''
+    [wantLines]=''
   )
 
   local -A case4=(
@@ -276,8 +276,8 @@ test_mk.KeepIf() {
     # that's the last line processed. An explicit `return 0` after the
     # loop fixes this; this case fails loudly (rc != 0) if it regresses.
     [args]='isNonEmpty'
-    [fields]=$'one\n'
-    [want]='one'
+    [fieldsLines]=$'one\n'
+    [wantLines]='one'
   )
 
   subtest() {
@@ -288,17 +288,17 @@ test_mk.KeepIf() {
 
     ## act
     local got_ rc
-    got_=$(echo "$fields" | eval "mk.KeepIf $args" 2>&1) && rc=$? || rc=$?
+    got_=$(echo "$fieldsLines" | eval "mk.KeepIf $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.KeepIf/$name: error = $rc, want: 0$NL$got_"
+      echo "${NL}mk.KeepIf/$name: error = $rc, wantLines: 0$NL$got_"
       return 1
     }
 
-    [[ $got_ == "$want" ]] || {
-      echo "${NL}mk.KeepIf/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
+    [[ $got_ == "$wantLines" ]] || {
+      echo "${NL}mk.KeepIf/$name got_ doesn't match wantLines:$NL$(tesht.Diff "$got_" "$wantLines")$NL"
+      echo "use this line to update wantLines to match this output:${NL}wantLines=${got_@Q}"
       return 1
     }
 
@@ -313,24 +313,24 @@ test_mk.Map() {
     [name]='prepend text'
 
     [args]="line 'prefix: \$line'"
-    [fields]=$'one\ntwo'
-    [want]=$'prefix: one\nprefix: two'
+    [fieldsLines]=$'one\ntwo'
+    [wantLines]=$'prefix: one\nprefix: two'
   )
 
   local -A case2=(
     [name]='convert to uppercase'
 
     [args]="line '\${line^^}'"
-    [fields]=$'one\ntwo'
-    [want]=$'ONE\nTWO'
+    [fieldsLines]=$'one\ntwo'
+    [wantLines]=$'ONE\nTWO'
   )
 
   local -A case3=(
     [name]='accept empty input gracefully'
 
     [args]="line '\$line'"
-    [fields]=''
-    [want]=''
+    [fieldsLines]=''
+    [wantLines]=''
   )
 
   subtest() {
@@ -341,17 +341,17 @@ test_mk.Map() {
 
     ## act
     local got_ rc
-    got_=$(echo "$fields" | eval "mk.Map $args" 2>&1) && rc=$? || rc=$?
+    got_=$(echo "$fieldsLines" | eval "mk.Map $args" 2>&1) && rc=$? || rc=$?
 
     ## assert
     (( rc == 0 )) || {
-      echo "${NL}mk.Map/$name: error = $rc, want: 0$NL$got_"
+      echo "${NL}mk.Map/$name: error = $rc, wantLines: 0$NL$got_"
       return 1
     }
 
-    [[ $got_ == "$want" ]] || {
-      echo "${NL}mk.Map/$name got_ doesn't match want:$NL$(tesht.Diff "$got_" "$want")$NL"
-      echo "use this line to update want to match this output:${NL}want=${got_@Q}"
+    [[ $got_ == "$wantLines" ]] || {
+      echo "${NL}mk.Map/$name got_ doesn't match wantLines:$NL$(tesht.Diff "$got_" "$wantLines")$NL"
+      echo "use this line to update wantLines to match this output:${NL}wantLines=${got_@Q}"
       return 1
     }
 
